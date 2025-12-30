@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # app_tontine_bf
 
 A new Flutter project.
@@ -14,3 +15,6 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# tontine-bf
+>>>>>>> 255a4e1e864e2250f8d8be8dfc7ce9ff1493a9d3
