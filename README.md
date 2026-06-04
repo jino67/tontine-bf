@@ -1,20 +1,29 @@
-<<<<<<< HEAD
-# app_tontine_bf
+# Lôgô BF - Flutter App
 
-A new Flutter project.
+## 📱 Description
+Lôgô BF est une application mobile développée avec **Flutter** pour digitaliser les pratiques d’épargne communautaire (tontines, cagnottes solidaires, épargne personnelle).  
+Elle vise à offrir une expérience fluide, sécurisée et adaptée aux réalités locales.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🛠️ Stack technique
+- **Frontend** : Flutter (Dart)
+- **Backend** : API REST (Laravel / Node.js)
+- **Base de données** : MySQL / PostgreSQL
+- **Authentification** : JWT / OAuth2
+- **CI/CD** : GitHub Actions
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🚀 Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-=======
-# tontine-bf
->>>>>>> 255a4e1e864e2250f8d8be8dfc7ce9ff1493a9d3
+### 1. Prérequis
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (>= 3.x)
+- Dart (inclus avec Flutter)
+- Android Studio ou VS Code avec extensions Flutter/Dart
+- Un émulateur Android ou un device physique
+
+### 2. Cloner le projet
+```bash
+git clone https://github.com/ton-org/logobf.git
+cd logobf
