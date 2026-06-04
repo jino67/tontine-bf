@@ -8,9 +8,9 @@ Elle vise à offrir une expérience fluide, sécurisée et adaptée aux réalit�
 
 ## 🛠️ Stack technique
 - **Frontend** : Flutter (Dart)
-- **Backend** : API REST (Laravel / Node.js)
-- **Base de données** : MySQL / PostgreSQL
-- **Authentification** : JWT / OAuth2
+- **Backend** : API REST (Laravel on peut switch a node)
+- **Base de données** : MySQL
+- **Authentification** : OAuth2
 - **CI/CD** : GitHub Actions
 
 ---
