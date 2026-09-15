@@ -1,118 +1,133 @@
 # Déploiement de l'API sur LWS
 
-L'API (`apps/api`) est hébergée chez LWS sur un sous-domaine, par exemple `api.<domaine>`. L'application mobile est compilée avec l'adresse de cette API.
+L'API (`apps/api`) est hébergée chez LWS **à la racine d'un domaine**, sans sous-domaine, par exemple `goaicorp-crm.online`. La base est **SQLite** : un seul fichier, rien à créer dans le panneau. L'application mobile est compilée avec l'adresse de cette API.
+
+Deux méthodes sont décrites : l'archive prête à décompresser (sans SSH, section 2) et le dépôt Git (avec SSH, section 8).
 
 ## 0. Vérifier ce que permet l'offre LWS
-
-La procédure dépend de l'offre souscrite. À vérifier dans l'espace client LWS avant de commencer :
 
 | Besoin | Utilité | Si l'offre ne le permet pas |
 |---|---|---|
 | PHP 8.2 ou plus | Laravel 12 | changer la version PHP dans le panneau, sinon changer d'offre |
-| Accès SSH | `composer install`, migrations, cache | **bloquant** : prendre une offre avec SSH ou un VPS LWS |
-| Tâches planifiées (cron) toutes les minutes | planificateur Laravel, file d'attente, purges | **bloquant** |
-| Sous-domaine avec dossier racine au choix | faire pointer `api.<domaine>` sur `public/` | règle `.htaccess` de repli (section 6) |
-| Base MySQL ou MariaDB | données | noter le moteur exact : il sert pour `DB_CONNECTION` |
-| Certificat SSL Let's Encrypt | HTTPS, obligatoire pour l'app | l'activer sur le sous-domaine |
+| Extension `pdo_sqlite` | base de données | activer l'extension, sinon passer à MySQL ou MariaDB (section 6) |
+| Tâches planifiées (cron) toutes les minutes | file d'attente, purge des codes SMS et des jetons | sans cron, les purges doivent être lancées à la main |
+| Certificat SSL Let's Encrypt | HTTPS, obligatoire pour l'app et pour PayDunya | l'activer sur le domaine |
+| Accès SSH | pratique, mais **pas nécessaire** avec l'archive | utiliser la méthode de la section 2 |
 
 Le code est testé en CI sur SQLite, MariaDB 10.11 et MySQL 8.0.
 
-## 1. Préparer l'hébergement
+## 1. Structure installée
 
-1. Créer une base de données et son utilisateur dans le panneau LWS. Noter l'hôte, le nom de la base, l'utilisateur et le mot de passe.
-2. Créer le sous-domaine `api.<domaine>` avec pour dossier racine `tontine-bf/apps/api/public`.
-3. Activer le certificat SSL du sous-domaine.
-4. Choisir PHP 8.2 ou plus pour ce sous-domaine, avec les extensions `pdo_mysql`, `mbstring`, `openssl`, `intl`, `fileinfo`, `tokenizer`, `xml` et `ctype`.
-5. Pour un environnement de test, répéter l'opération avec `api-staging.<domaine>` et une base séparée.
+Le dossier du domaine (`htdocs/<domaine>`) contient :
 
-## 2. Premier déploiement (SSH)
-
-Se connecter en SSH puis cloner le dépôt dans le dossier personnel. Si le dépôt passe en privé, ajouter d'abord une clé de déploiement en lecture seule dans GitHub.
-
-```bash
-git clone --branch main https://github.com/jino67/tontine-bf.git ~/tontine-bf
+```
+index.php          point d'entrée, il charge tontine-api/
+.htaccess          réécriture des adresses vers index.php
+favicon.ico
+robots.txt
+tontine-api/       l'application Laravel complète, avec son .env et sa base SQLite
 ```
 
+L'application est donc **à l'intérieur** du dossier web, puisqu'il n'y a pas de sous-domaine dont on choisirait le dossier racine. Elle est protégée par `tontine-api/.htaccess` qui refuse tout accès direct (`Require all denied`). C'est la vérification la plus importante après l'installation.
+
+## 2. Installation par archive (sans SSH)
+
+Construire l'archive depuis le poste de développement :
+
 ```bash
-cd ~/tontine-bf/apps/api && composer install --no-dev --optimize-autoloader
+cd apps/api && composer install --no-dev --optimize-autoloader
 ```
 
-Si `composer` n'est pas disponible sur le serveur, télécharger `composer.phar` depuis getcomposer.org et lancer `php composer.phar install --no-dev --optimize-autoloader`.
+Puis reproduire la structure ci-dessus : le contenu de `public/` à la racine, le reste dans `tontine-api/`, en adaptant dans `index.php` les deux chemins `__DIR__.'/../'` en `__DIR__.'/tontine-api/'`. Créer la base avec `php artisan migrate --force` avant de compresser, pour n'avoir rien à lancer sur le serveur.
 
-```bash
-cp .env.example .env && php artisan key:generate
-```
+Sur le panneau LWS : ouvrir `htdocs/<domaine>`, bouton « Charger » pour envoyer l'archive, la sélectionner, bouton « Extraire », puis supprimer l'archive.
 
-Modifier ensuite `.env` avec les valeurs de production :
+Vérifier ensuite dans le navigateur :
+
+| Adresse | Résultat attendu |
+|---|---|
+| `https://<domaine>/up` | page « Application up » |
+| `https://<domaine>/tontine-api/.env` | erreur 403 |
+| `https://<domaine>/api/v1/orgs` | message « Unauthenticated » |
+
+Si une erreur 500 apparaît, donner les droits d'écriture (755, ou 775 si LWS l'exige) à `tontine-api/storage` et `tontine-api/database`.
+
+## 3. Fichier `.env` de production
 
 ```dotenv
 APP_NAME="Tontine BF"
-APP_ENV=production
+APP_ENV=staging
+APP_KEY=base64:<généré par php artisan key:generate --show>
 APP_DEBUG=false
-APP_URL=https://api.<domaine>
+APP_URL=https://<domaine>
 APP_LOCALE=fr
 
 LOG_CHANNEL=daily
 LOG_LEVEL=warning
 
-# mariadb ou mysql, selon le moteur indiqué par LWS
-DB_CONNECTION=mariadb
-DB_HOST=<hôte fourni par LWS>
-DB_PORT=3306
-DB_DATABASE=<nom de la base>
-DB_USERNAME=<utilisateur>
-DB_PASSWORD=<mot de passe>
+# SQLite : le fichier tontine-api/database/database.sqlite
+DB_CONNECTION=sqlite
 
-SESSION_DRIVER=database
-CACHE_STORE=database
+SESSION_DRIVER=file
+CACHE_STORE=file
 QUEUE_CONNECTION=database
 
-# PayDunya : clés du menu « Intégrez notre API ». Commencer en test, passer en live après un essai réel.
 PAYDUNYA_MODE=live
 PAYDUNYA_MASTER_KEY=<clé principale>
 PAYDUNYA_PUBLIC_KEY=<clé publique live>
 PAYDUNYA_PRIVATE_KEY=<clé privée live>
 PAYDUNYA_TOKEN=<token live>
 PAYDUNYA_STORE_NAME="Tontine BF"
-# Les remises envoient de l'argent réel : activer seulement quand le solde PayDunya et les tests sont prêts.
 PAYDUNYA_PAYOUTS_ENABLED=false
 ```
 
-**Paiements PayDunya** :
+**`APP_ENV=staging` tant qu'aucun fournisseur SMS n'est branché** : les codes de connexion sont alors écrits dans `tontine-api/storage/logs`, sinon personne ne peut se connecter. En `production`, l'API refuse d'envoyer un code tant qu'un fournisseur SMS n'est pas configuré.
 
-- Les clés de production se saisissent uniquement dans ce `.env`, jamais dans le dépôt ni dans une conversation. Si une clé privée ou un token a circulé (capture d'écran, message), le régénérer dans PayDunya avant l'ouverture.
-- `APP_URL` doit être l'adresse publique en `https` : elle sert à construire les adresses de retour et de notification envoyées à PayDunya.
-- Adresses appelées par PayDunya, à laisser accessibles sans authentification : `https://api.<domaine>/api/v1/payments/paydunya/ipn` (paiements) et `https://api.<domaine>/api/v1/payouts/paydunya/callback` (remises). Leur signature est vérifiée, puis le statut est relu auprès de PayDunya.
-- La page `https://api.<domaine>/paiement/retour` s'affiche au membre après le paiement.
-- Il n'existe pas de sandbox pour les remises : un test de remise déplace de l'argent réel.
+## 4. Tâche cron
 
-**Important** : en `APP_ENV=production`, l'API refuse d'envoyer les codes OTP tant qu'aucun fournisseur SMS n'est branché. Personne ne peut donc se connecter. Pour tester sur LWS avant cette intégration, utiliser `APP_ENV=staging` : les codes sont alors écrits dans `storage/logs`.
-
-Créer les tables et mettre en cache la configuration :
+Dans le panneau LWS, une tâche **toutes les minutes** :
 
 ```bash
-php artisan migrate --force && php artisan optimize
+cd /home/<utilisateur>/htdocs/<domaine>/tontine-api && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Vérifier que l'API répond (code 200 attendu) :
+Le chemin de `php` en ligne de commande peut différer de la version du site : vérifier avec `php -v` et utiliser le chemin complet de la bonne version si besoin. Le planificateur (`routes/console.php`) traite la file d'attente chaque minute, puis purge chaque jour les codes OTP périmés et les jetons expirés.
+
+## 5. PayDunya
+
+- Les clés de production ne vivent que dans `tontine-api/.env`. Si une clé privée ou un token a circulé (capture d'écran, message), le régénérer dans PayDunya avant l'ouverture au public.
+- `APP_URL` doit être l'adresse publique en `https` : elle sert à construire les adresses envoyées à PayDunya.
+- Adresses appelées par PayDunya, laissées accessibles sans authentification : `https://<domaine>/api/v1/payments/paydunya/ipn` et `https://<domaine>/api/v1/payouts/paydunya/callback`. Leur signature est vérifiée, puis le statut est relu auprès de PayDunya.
+- La page `https://<domaine>/paiement/retour` s'affiche au membre après son paiement.
+- Il n'existe pas de sandbox pour les remises : un essai de remise déplace de l'argent réel. Garder `PAYDUNYA_PAYOUTS_ENABLED=false` jusqu'au premier essai maîtrisé.
+
+## 6. Base de données
+
+La base est le fichier `tontine-api/database/database.sqlite`. Le sauvegarder, c'est le télécharger depuis le gestionnaire de fichiers : à faire régulièrement, c'est toute la base. Activer aussi les sauvegardes proposées par LWS.
+
+SQLite convient au démarrage : peu de membres, peu d'écritures simultanées. Quand le trafic augmente, créer une base MySQL ou MariaDB dans le panneau, remplacer les lignes `DB_` du `.env` par `DB_CONNECTION=mariadb` et les identifiants fournis, puis relancer `php artisan migrate --force`. Le code ne change pas.
+
+## 7. Sécurité et exploitation
+
+- `APP_DEBUG=false` en production, sans exception : sinon les erreurs affichent la configuration.
+- Vérifier après chaque mise à jour que `https://<domaine>/tontine-api/.env` répond 403.
+- Surveiller `https://<domaine>/up` avec un service de disponibilité (UptimeRobot, Better Stack...).
+- Les journaux sont dans `tontine-api/storage/logs`.
+- Passer sur un VPS LWS quand les volumes augmentent (SMS en masse, notifications de paiement) : on pourra alors utiliser Redis, Horizon et un worker permanent.
+
+## 8. Variante avec SSH et Git
+
+Si l'offre donne un accès SSH, le dépôt peut être cloné hors du dossier web et `index.php` adapté en conséquence :
 
 ```bash
-curl -I https://api.<domaine>/up
+git clone --branch main https://github.com/jino67/tontine-bf.git ~/tontine-bf
 ```
-
-## 3. Tâche cron
-
-Dans le panneau LWS, ajouter une tâche exécutée **toutes les minutes** :
 
 ```bash
-cd ~/tontine-bf/apps/api && php artisan schedule:run >> /dev/null 2>&1
+cd ~/tontine-bf/apps/api && composer install --no-dev --optimize-autoloader && php artisan migrate --force && php artisan optimize
 ```
 
-Le chemin de `php` en ligne de commande peut différer de la version choisie pour le site. Vérifier avec `php -v` en SSH et utiliser le chemin complet de la bonne version si besoin.
-
-Le planificateur (`routes/console.php`) traite la file d'attente chaque minute, puis purge chaque jour les codes OTP périmés et les jetons expirés. Sur un hébergement mutualisé, il n'y a ni Redis ni processus permanent : c'est ce cron qui remplace un worker.
-
-## 4. Mettre à jour
+Mise à jour :
 
 ```bash
 cd ~/tontine-bf && php apps/api/artisan down && git pull --ff-only
@@ -124,30 +139,14 @@ cd ~/tontine-bf/apps/api && composer install --no-dev --optimize-autoloader && p
 
 Toujours déployer une version taguée qui a passé la CI, jamais une branche en cours.
 
-## 5. Sécurité et exploitation
+## 9. Mise à jour de l'installation par archive
 
-- `APP_DEBUG=false` en production, sans exception : sinon les erreurs affichent la configuration.
-- Le fichier `.env` reste hors de `public/` : c'est pour cela que le sous-domaine pointe sur `apps/api/public` et non sur la racine du dépôt.
-- Activer les sauvegardes proposées par LWS et exporter aussi la base chaque jour hors de LWS.
-- Surveiller `https://api.<domaine>/up` avec un service de disponibilité (UptimeRobot, Better Stack...).
-- Les journaux sont dans `apps/api/storage/logs`.
-- Passer sur un VPS LWS quand les volumes augmentent (SMS en masse, webhooks de paiement) : on pourra alors utiliser Redis, Horizon et un worker permanent.
+Remplacer le contenu de `tontine-api`, **sauf** `tontine-api/.env` et `tontine-api/database/database.sqlite`, puis vider `tontine-api/bootstrap/cache` (supprimer les fichiers `.php` qui s'y trouvent) pour que la configuration soit relue.
 
-## 6. Repli si le dossier racine du sous-domaine ne peut pas être choisi
-
-Placer ce fichier `.htaccess` à la racine du sous-domaine pour rediriger vers `apps/api/public` :
-
-```apache
-RewriteEngine On
-RewriteRule ^(.*)$ tontine-bf/apps/api/public/$1 [L]
-```
-
-Cette solution fonctionne, mais un dossier racine pointant directement sur `public/` reste préférable.
-
-## 7. Compiler l'application mobile
+## 10. Compiler l'application mobile
 
 ```bash
-flutter build apk --release --dart-define=API_URL=https://api.<domaine>/api/v1
+flutter build apk --release --dart-define=API_URL=https://<domaine>/api/v1
 ```
 
 Sans `API_URL`, l'app vise l'API locale de développement (`http://10.0.2.2:8000/api/v1` sur émulateur Android, `http://localhost:8000/api/v1` sur le web).
