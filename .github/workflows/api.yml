@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    name: tests sqlite (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,3 +32,52 @@ jobs:
       - run: cp .env.example .env && php artisan key:generate
       - run: vendor/bin/pint --test
       - run: php artisan test
+
+  # L'hébergement LWS fournit MySQL ou MariaDB : les migrations et requêtes y sont testées aussi.
+  database:
+    name: tests ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: mariadb
+            image: mariadb:10.11
+          - database: mysql
+            image: mysql:8.0
+    services:
+      db:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: tontine_test
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_DATABASE: tontine_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppassword || mariadb-admin ping -h 127.0.0.1 -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, intl
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Pointer phpunit.xml sur la base du service
+        run: |
+          sed -i 's/name="DB_CONNECTION" value="sqlite"/name="DB_CONNECTION" value="${{ matrix.database }}"/' phpunit.xml
+          sed -i 's/name="DB_DATABASE" value=":memory:"/name="DB_DATABASE" value="tontine_test"/' phpunit.xml
+      - run: php artisan test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USERNAME: root
+          DB_PASSWORD: password

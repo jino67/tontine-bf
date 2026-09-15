@@ -29,7 +29,7 @@ class TontineController extends Controller
                 ! $membership->role->canRecordContributions(),
                 fn ($query) => $query->whereHas('members', fn ($members) => $members->where('user_id', $membership->user_id)),
             )
-            ->withCount('members')
+            ->withProgress()
             ->latest('id')
             ->get();
 
@@ -79,9 +79,15 @@ class TontineController extends Controller
     {
         $this->ensureCanView($request, $tontine);
 
-        return TontineResource::make($tontine->load([
-            'members' => fn ($query) => $query->orderByRaw('position is null')->orderBy('position')->orderBy('id'),
-            'members.user',
-        ])->loadCount('members'));
+        return TontineResource::make(
+            $organization->tontines()
+                ->whereKey($tontine->id)
+                ->withProgress()
+                ->with([
+                    'members' => fn ($query) => $query->orderByRaw('position is null')->orderBy('position')->orderBy('id'),
+                    'members.user',
+                ])
+                ->firstOrFail()
+        );
     }
 }

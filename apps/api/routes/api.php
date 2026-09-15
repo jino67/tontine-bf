@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DrawController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MemberController;
+use App\Http\Controllers\Api\MyContributionController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\StartTontineController;
 use App\Http\Controllers\Api\TontineController;
@@ -24,6 +25,7 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/logout', [OtpController::class, 'logout']);
         Route::get('me', [MeController::class, 'show']);
         Route::patch('me', [MeController::class, 'update']);
+        Route::get('me/contributions', MyContributionController::class);
 
         Route::get('orgs', [OrganizationController::class, 'index']);
         Route::post('orgs', [OrganizationController::class, 'store']);

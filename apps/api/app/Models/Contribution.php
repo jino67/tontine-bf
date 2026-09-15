@@ -20,6 +20,8 @@ class Contribution extends Model
     protected function casts(): array
     {
         return [
+            'cycle_id' => 'integer',
+            'tontine_member_id' => 'integer',
             'amount_due' => 'integer',
             'amount_paid' => 'integer',
             'method' => PaymentMethod::class,

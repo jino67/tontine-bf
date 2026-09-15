@@ -20,6 +20,6 @@ class StartTontineController extends Controller
 
         $scheduler->start($tontine);
 
-        return TontineResource::make($tontine->refresh()->loadCount('members'));
+        return TontineResource::make($organization->tontines()->whereKey($tontine->id)->withProgress()->firstOrFail());
     }
 }

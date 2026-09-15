@@ -7,10 +7,12 @@ use App\Enums\TontineStatus;
 use App\Enums\TontineType;
 use App\Exceptions\DomainRuleException;
 use Database\Factories\TontineFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Tontine extends Model
@@ -62,6 +64,23 @@ class Tontine extends Model
     public function draw(): HasOne
     {
         return $this->hasOne(Draw::class);
+    }
+
+    public function contributions(): HasManyThrough
+    {
+        return $this->hasManyThrough(Contribution::class, Cycle::class);
+    }
+
+    /** Nombre de membres, totaux dus et payés, prochaine échéance. */
+    public function scopeWithProgress(Builder $query): void
+    {
+        $query->withCount('members')
+            ->withSum('contributions as amount_due_total', 'amount_due')
+            ->withSum('contributions as amount_paid_total', 'amount_paid')
+            ->withMin(
+                ['cycles as next_due_on' => fn ($cycles) => $cycles->where('due_on', '>=', today()->toDateString())],
+                'due_on',
+            );
     }
 
     public function hasMember(int $userId): bool

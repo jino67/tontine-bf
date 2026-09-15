@@ -23,6 +23,9 @@ class TontineResource extends JsonResource
             'status' => $this->status->value,
             'started_at' => $this->started_at?->toIso8601String(),
             'members_count' => $this->whenCounted('members'),
+            'amount_due_total' => $this->whenHas('amount_due_total', fn ($value) => (int) $value),
+            'amount_paid_total' => $this->whenHas('amount_paid_total', fn ($value) => (int) $value),
+            'next_due_on' => $this->whenHas('next_due_on', fn ($value) => $value ? substr((string) $value, 0, 10) : null),
             'members' => TontineMemberResource::collection($this->whenLoaded('members')),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

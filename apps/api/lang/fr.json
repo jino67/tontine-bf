@@ -1,0 +1,5 @@
+{
+    "(and :count more error)": "(et :count autre erreur)",
+    "(and :count more errors)": "(et :count autres erreurs)",
+    "(and :count more error)|(and :count more errors)": "(et :count autre erreur)|(et :count autres erreurs)"
+}

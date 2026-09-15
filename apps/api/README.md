@@ -36,6 +36,7 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 | POST | `auth/otp/verify` | public, renvoie `token` |
 | POST | `auth/logout` | connecté |
 | GET, PATCH | `me` | connecté |
+| GET | `me/contributions?organization_id=` | connecté (ses propres cotisations, avec `is_late` et `is_beneficiary`) |
 | GET, POST | `orgs` | connecté (le créateur devient `owner`) |
 | POST | `invitations/{code}/accept` | connecté |
 | GET | `orgs/{org}` | membre |
