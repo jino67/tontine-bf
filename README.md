@@ -43,7 +43,7 @@ Prérequis : Flutter 3.35 ou plus.
 cd apps/mobile && flutter pub get && flutter run
 ```
 
-L'app mobile appelle encore l'ancien backend PHP. Son branchement sur la nouvelle API fait l'objet de la phase 2 du [guide](docs/GUIDE_SAAS.md).
+L'app mobile est branchée sur la nouvelle API : voir [apps/mobile/README.md](apps/mobile/README.md) pour la configuration, la charte graphique et l'organisation du code.
 
 ## Documentation
 

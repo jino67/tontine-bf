@@ -1,8 +1,8 @@
 name: app_tontine_bf
-description: "Crafted by zoldyck."
-publish_to: 'All_fams'
+description: "Application mobile Tontine BF : suivi des tontines et des cotisations."
+publish_to: 'none'
 
-version: 1.0.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.9.2
@@ -10,30 +10,29 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^2.27.0
-  firebase_auth: ^4.17.2
-  http: ^1.1.0
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.8
-  cloud_firestore: ^4.17.5
-  shared_preferences: ^2.5.3
+  http: ^1.1.0
   intl: ^0.20.2
+  shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
+  flutter_secure_storage: ^10.3.4
+  crypto: ^3.0.7
+  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  flutter_launcher_icons: "^0.13.1"
+  flutter_launcher_icons: ^0.13.1
 
-# CORRECTION : Même nom que le fichier
-flutter_icons:
+flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/images/logo.png"  # ← logo.png comme ton fichier
+  image_path: "assets/images/logo.png"
 
 flutter:
   uses-material-design: true
-
-  # CORRECTION : Même nom que le fichier
   assets:
-    - assets/images/logo.png  # ← logo.png comme ton fichier
+    - assets/images/logo.png
