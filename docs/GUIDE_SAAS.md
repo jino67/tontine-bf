@@ -177,7 +177,7 @@ flowchart LR
   end
   subgraph Serveur
     API[API Laravel /api/v1]
-    Q[Files Redis + Horizon]
+    Q[File d'attente base de données + cron]
     S[Scheduler: cycles, relances]
     DB[(MySQL ou PostgreSQL)]
   end
@@ -204,7 +204,7 @@ flowchart LR
 - `filament/filament` : back-office avec multi-tenant intégré (un panel « organisation », un panel « super admin »).
 - `spatie/laravel-permission` avec les « teams » : rôles par organisation.
 - `spatie/laravel-activitylog` : journal d'audit.
-- `laravel/horizon` : files d'attente (SMS, notifications, webhooks).
+- Files d'attente (SMS, notifications, webhooks) : pilote `database` traité par cron sur l'hébergement LWS, `laravel/horizon` et Redis une fois sur VPS.
 - `dedoc/scramble` : documentation OpenAPI générée automatiquement.
 - `pestphp/pest` : tests.
 
@@ -333,8 +333,9 @@ Ce qui se réutilise : le thème (`lib/config/theme.dart`), la mise en page des 
 
 ### 4.10 Hébergement et exploitation
 
-- VPS 2 vCPU / 4 Go (Hetzner, OVH, DigitalOcean) géré avec Laravel Forge ou Ploi, ou Laravel Cloud.
-- Nginx, PHP-FPM, base de données, Redis, HTTPS.
+- Hébergement **LWS** : procédure complète dans [deploiement-lws.md](deploiement-lws.md).
+- Au lancement, un hébergement web LWS suffit s'il offre PHP 8.2+, SSH, cron à la minute et MySQL/MariaDB. La file d'attente utilise la base de données et le cron remplace un worker permanent.
+- Passage sur un VPS LWS (Nginx, PHP-FPM, Redis, Horizon, Supervisor) quand les volumes de SMS et de webhooks de paiement le justifient.
 - Domaines : `domaine` (site vitrine), `app.domaine` (back-office), `api.domaine`.
 - Environnement **staging** séparé de la production.
 - Sauvegardes quotidiennes chiffrées hors serveur, test de restauration mensuel.
@@ -459,7 +460,7 @@ jobs:
       - run: php artisan test
 ```
 
-Le déploiement (Forge, Ploi ou script SSH) se déclenche ensuite sur tag `v*`.
+Le déploiement sur LWS se fait en SSH à partir d'une version taguée `v*` qui a passé la CI (voir [deploiement-lws.md](deploiement-lws.md)).
 
 ---
 

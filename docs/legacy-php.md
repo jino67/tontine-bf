@@ -34,7 +34,7 @@ Aucun fichier SQL n'était fourni. Tables déduites des requêtes :
 
 ## Points de sécurité relevés
 
-1. **Identifiants MySQL en clair** dans 3 fichiers déployés sur un serveur web. Action : changer le mot de passe de la base dans hPanel Hostinger, puis supprimer les scripts de `poupecosmetic.com/api/` puisqu'ils ne servent à aucun utilisateur.
+1. **Identifiants MySQL en clair** dans 3 fichiers déployés sur un serveur web. Le projet a quitté Hostinger pour LWS. Action : vérifier que le compte Hostinger est bien résilié, et que le site `poupecosmetic.com/api/` et la base `u347369184_tontine_bf` n'existent plus. S'ils sont encore en ligne, changer le mot de passe de la base puis supprimer les scripts.
 2. **Tirage truqué** : `executerTirage()` lit `tirage_config`. Pour chaque rang configuré, le gagnant est l'utilisateur choisi par l'admin, sans tirage. Le gain est ensuite crédité sur son portefeuille. Seuls les rangs non configurés sont tirés au hasard. Ce mécanisme n'est pas repris.
 3. **Aucune autorisation réelle** : `user_id` pris dans le corps de la requête (scripts mysqli) ou jeton égal à l'identifiant (scripts PDO).
 4. **Messages d'erreur SQL** renvoyés au client, `display_errors` activé, CORS ouvert à tous.

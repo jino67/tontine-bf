@@ -49,6 +49,7 @@ L'app mobile appelle encore l'ancien backend PHP. Son branchement sur la nouvell
 
 - [Guide de transformation en SaaS](docs/GUIDE_SAAS.md)
 - [Analyse de l'ancien backend PHP](docs/legacy-php.md)
+- [Déploiement de l'API sur LWS](docs/deploiement-lws.md)
 - [API v1](apps/api/README.md)
 
 ## Conventions
