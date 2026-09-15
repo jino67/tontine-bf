@@ -18,10 +18,10 @@ cd apps/mobile && flutter run
 
 Sans `API_URL`, l'application vise `http://10.0.2.2:8000/api/v1` sur émulateur Android et `http://localhost:8000/api/v1` sur le web. En local, le code de connexion reçu « par SMS » est écrit dans `apps/api/storage/logs/laravel.log`.
 
-Pour viser l'API hébergée chez LWS :
+Pour viser l'API hébergée chez LWS, installée à la racine d'un domaine (sans sous-domaine) :
 
 ```bash
-flutter build apk --release --dart-define=API_URL=https://api.<domaine>/api/v1
+flutter build apk --release --dart-define=API_URL=https://<domaine>/api/v1
 ```
 
 ## Organisation du code

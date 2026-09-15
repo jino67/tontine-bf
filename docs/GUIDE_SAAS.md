@@ -349,7 +349,7 @@ Ce qui se réutilise : le thème (`lib/config/theme.dart`), la mise en page des 
 ### 4.10 Hébergement et exploitation
 
 - Hébergement **LWS** : procédure complète dans [deploiement-lws.md](deploiement-lws.md).
-- Au lancement, un hébergement web LWS suffit s'il offre PHP 8.2+, SSH, cron à la minute et MySQL/MariaDB. La file d'attente utilise la base de données et le cron remplace un worker permanent.
+- Au lancement, un hébergement web LWS suffit s'il offre PHP 8.2+ et une tâche cron à la minute. La base est SQLite (un fichier), et l'API s'installe à la racine d'un domaine par simple décompression d'une archive, sans SSH. La file d'attente utilise la base de données et le cron remplace un worker permanent.
 - Passage sur un VPS LWS (Nginx, PHP-FPM, Redis, Horizon, Supervisor) quand les volumes de SMS et de webhooks de paiement le justifient.
 - Domaines : `domaine` (site vitrine), `app.domaine` (back-office), `api.domaine`.
 - Environnement **staging** séparé de la production.
@@ -475,7 +475,7 @@ jobs:
       - run: php artisan test
 ```
 
-Le déploiement sur LWS se fait en SSH à partir d'une version taguée `v*` qui a passé la CI (voir [deploiement-lws.md](deploiement-lws.md)).
+Le déploiement sur LWS se fait par archive décompressée depuis le panneau, ou en SSH à partir d'une version taguée `v*` qui a passé la CI (voir [deploiement-lws.md](deploiement-lws.md)).
 
 ---
 
