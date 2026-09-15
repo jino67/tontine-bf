@@ -28,6 +28,19 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Paiements en ligne. En mode "test", les factures passent par la sandbox PayDunya.
+    // Les remises (déboursements) n'ont pas de sandbox : elles déplacent de l'argent réel,
+    // et restent refusées tant que PAYDUNYA_PAYOUTS_ENABLED ne vaut pas true.
+    'paydunya' => [
+        'mode' => env('PAYDUNYA_MODE', 'test'),
+        'master_key' => env('PAYDUNYA_MASTER_KEY'),
+        'public_key' => env('PAYDUNYA_PUBLIC_KEY'),
+        'private_key' => env('PAYDUNYA_PRIVATE_KEY'),
+        'token' => env('PAYDUNYA_TOKEN'),
+        'store_name' => env('PAYDUNYA_STORE_NAME', 'Tontine BF'),
+        'payouts_enabled' => (bool) env('PAYDUNYA_PAYOUTS_ENABLED', false),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

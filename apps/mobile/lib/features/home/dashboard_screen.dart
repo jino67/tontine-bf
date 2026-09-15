@@ -9,6 +9,7 @@ import '../../core/widgets/woven_band.dart';
 import '../cagnottes/cagnotte.dart';
 import '../cagnottes/cagnotte_repository.dart';
 import '../cagnottes/cagnotte_tile.dart';
+import '../payments/pay_online.dart';
 import '../profile/help_screen.dart';
 import '../tontines/create_tontine_screen.dart';
 import '../tontines/models.dart';
@@ -72,6 +73,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _payOnline(MyContribution item) async {
+    final paid = await payOnline(
+      context,
+      start: (payments) => payments.payContribution(item.tontineId, item.contribution.cycleId, item.contribution.id),
+    );
+    if (paid) widget.repository.revision.value++;
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = SessionScope.of(context);
@@ -101,7 +110,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _NextPaymentHero(contributions: data.contributions, onSchedule: () => widget.onOpenTab(3)),
+                    child: _NextPaymentHero(
+                      contributions: data.contributions,
+                      onSchedule: () => widget.onOpenTab(3),
+                      onPay: _payOnline,
+                    ),
                   ),
                   if (lateCount > 1)
                     Padding(
@@ -198,10 +211,11 @@ class _Header extends StatelessWidget {
 
 /// Le premier bloc de l'accueil : ce que le membre doit payer ensuite, et quand il reçoit.
 class _NextPaymentHero extends StatelessWidget {
-  const _NextPaymentHero({required this.contributions, required this.onSchedule});
+  const _NextPaymentHero({required this.contributions, required this.onSchedule, required this.onPay});
 
   final List<MyContribution> contributions;
   final VoidCallback onSchedule;
+  final ValueChanged<MyContribution> onPay;
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +229,7 @@ class _NextPaymentHero extends StatelessWidget {
       if (next == null && !item.contribution.isFullyPaid) next = item;
       if (toReceive == null && item.isBeneficiary && !item.dueOn.isBefore(today)) toReceive = item;
     }
+    final pending = next;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
@@ -240,6 +255,15 @@ class _NextPaymentHero extends StatelessWidget {
               style: AppType.sans(size: 17, bold: true, color: Colors.white),
             ),
             Text('${next.tontineName}, tour ${next.cycleNumber}', style: theme.textTheme.bodyMedium?.copyWith(color: soft)),
+            if (pending != null && pending.contribution.status != ContributionStatus.confirmed) ...[
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () => onPay(pending),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.ink),
+                icon: const Icon(Icons.phone_iphone_rounded),
+                label: const Text('Payer en ligne'),
+              ),
+            ],
           ] else if (contributions.isEmpty) ...[
             Text('Aucune cotisation prévue', style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white)),
             const SizedBox(height: 8),

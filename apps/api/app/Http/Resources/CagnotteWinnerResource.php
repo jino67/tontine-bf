@@ -26,6 +26,7 @@ class CagnotteWinnerResource extends JsonResource
             'paid_method' => $this->paid_method?->value,
             'paid_reference' => $this->paid_reference,
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
+            'payout' => $this->whenLoaded('latestPayout', fn () => PayoutResource::make($this->latestPayout)),
         ];
     }
 }

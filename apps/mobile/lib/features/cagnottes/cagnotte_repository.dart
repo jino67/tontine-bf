@@ -129,11 +129,21 @@ class CagnotteRepository {
     revision.value++;
   }
 
-  Future<Cagnotte> recordHandover(int cagnotteId, {required int amount, required PaymentMethod method, String? reference}) async =>
+  /// Avec [PaymentMethod.paydunya], [withdrawMode] et [phone] désignent le compte mobile money qui reçoit les fonds.
+  Future<Cagnotte> recordHandover(
+    int cagnotteId, {
+    required int amount,
+    required PaymentMethod method,
+    String? reference,
+    String? withdrawMode,
+    String? phone,
+  }) async =>
       _changed(await _api.post('$_base/$cagnotteId/handover', {
         'amount': amount,
         'method': method.apiValue,
         'reference': _clean(reference),
+        'withdraw_mode': ?withdrawMode,
+        'phone': ?phone,
       }));
 
   Future<Cagnotte> confirmHandover(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/handover/confirm'));
@@ -147,10 +157,19 @@ class CagnotteRepository {
 
   Future<Cagnotte> revealDraw(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/draw/reveal'));
 
-  Future<Cagnotte> recordPayout(int cagnotteId, int winnerId, {required PaymentMethod method, String? reference}) async =>
+  Future<Cagnotte> recordPayout(
+    int cagnotteId,
+    int winnerId, {
+    required PaymentMethod method,
+    String? reference,
+    String? withdrawMode,
+    String? phone,
+  }) async =>
       _changed(await _api.post('$_base/$cagnotteId/winners/$winnerId/payout', {
         'method': method.apiValue,
         'reference': _clean(reference),
+        'withdraw_mode': ?withdrawMode,
+        'phone': ?phone,
       }));
 
   Future<Cagnotte> confirmPayout(int cagnotteId, int winnerId) async =>

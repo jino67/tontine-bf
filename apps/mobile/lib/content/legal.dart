@@ -22,6 +22,7 @@ const privacySections = [
   LegalSection('Qui y a accès', [
     'Les responsables et le trésorier de votre organisation voient votre nom, votre numéro et vos cotisations.',
     'Les autres membres voient votre nom et un numéro masqué.',
+    'Pour un paiement ou une remise en ligne, PayDunya reçoit le montant et le numéro mobile money utilisé.',
   ]),
   LegalSection('Vos droits', [
     'Au Burkina Faso, la loi n°001-2021/AN protège vos données personnelles, sous le contrôle de la CIL.',
@@ -33,7 +34,8 @@ const privacySections = [
 const aboutParagraphs = [
   'Tontine BF aide les associations, groupements et coopératives à tenir leurs tontines sans cahier : '
       'qui a cotisé, qui reçoit, qui est en retard.',
-  'L’application ne détient pas d’argent. Elle enregistre ce que le trésorier reçoit et le fait confirmer par chaque membre.',
+  'Les paiements en espèces sont enregistrés par le trésorier et confirmés par chaque membre. '
+      'Les paiements en ligne passent par PayDunya et sont confirmés automatiquement.',
   'Les tirages au sort sont vérifiables par tous : une fois l’empreinte publiée, personne, pas même l’équipe de Tontine BF, '
       'ne peut en changer le résultat.',
   'Quand un responsable attribue lui-même un tour ou un gain, ce choix est affiché à tous les membres avant qu’ils ne paient, '

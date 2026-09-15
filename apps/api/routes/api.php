@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MyContributionController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\PayDunyaWebhookController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\StartTontineController;
 use App\Http\Controllers\Api\TontineController;
 use App\Http\Controllers\Api\TontineMemberController;
@@ -24,6 +26,12 @@ Route::prefix('v1')->group(function () {
     Route::middleware('throttle:otp')->group(function () {
         Route::post('auth/otp/request', [OtpController::class, 'sendCode']);
         Route::post('auth/otp/verify', [OtpController::class, 'verifyCode']);
+    });
+
+    // Notifications signées de PayDunya (sans jeton de connexion).
+    Route::middleware('throttle:120,1')->group(function () {
+        Route::post('payments/paydunya/ipn', [PayDunyaWebhookController::class, 'payment'])->name('payments.paydunya.ipn');
+        Route::post('payouts/paydunya/callback', [PayDunyaWebhookController::class, 'payout'])->name('payouts.paydunya.callback');
     });
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -54,6 +62,9 @@ Route::prefix('v1')->group(function () {
             Route::get('tontines/{tontine}/cycles/{cycle}', [CycleController::class, 'show']);
             Route::put('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}', [ContributionController::class, 'update']);
             Route::post('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}/confirm', [ContributionController::class, 'confirm']);
+            Route::post('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}/pay', [PaymentController::class, 'payContribution']);
+            Route::post('cagnottes/{cagnotte}/pay', [PaymentController::class, 'payCagnotte']);
+            Route::get('payments/{payment}', [PaymentController::class, 'show']);
 
             Route::get('tontines/{tontine}/draw', [DrawController::class, 'show']);
             Route::post('tontines/{tontine}/draw', [DrawController::class, 'store']);

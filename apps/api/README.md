@@ -27,6 +27,7 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 - **Cotisations** : le trésorier enregistre, le membre confirme. Une cotisation confirmée ne peut plus être modifiée.
 - **Tirage vérifiable** (type `tirage_ordre`) : l'empreinte `sha256` de la graine est publiée d'abord, la graine n'est révélée qu'après la date annoncée, et l'ordre se recalcule sans l'application. Le responsable peut attribuer des tours (`designations`) : ils sont publiés avec l'empreinte et visibles de tous.
 - **Cagnottes** : durée `flash_24h`, `hebdo_7j`, `mensuelle_30j` ou `personnalisee` ; une cagnotte ouverte dont `ends_at` est passé est vue comme clôturée. Mode `solidaire` : remise des fonds enregistrée par un responsable, confirmée par le bénéficiaire membre. Mode `gagnants` : un ticket par tranche de `ticket_price`, gains répartis selon `prize_split` après `fee_percent`, rangs attribués modifiables tant qu'aucune participation n'existe, tirage vérifiable après clôture, remise de chaque gain confirmée par le gagnant.
+- **Paiements PayDunya** : le membre paie lui-même sa cotisation ou sa participation sur la page PayDunya. Le statut est toujours relu auprès de l'API PayDunya (notification signée ou retour dans l'application), puis appliqué une seule fois : la cotisation ou la participation est alors enregistrée et confirmée. Un montant différent du montant attendu n'est jamais appliqué. Les remises de gains et de fonds peuvent partir par PayDunya (`method: paydunya`, `withdraw_mode`, `phone`) si `PAYDUNYA_PAYOUTS_ENABLED=true` : il n'existe pas de sandbox pour ces envois.
 - **Erreurs** : validation en 422 avec `errors`, règle métier en 422 avec `message`, droits en 403.
 
 ## Endpoints `/api/v1`
@@ -64,6 +65,10 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 | PUT | `.../cagnottes/{cagnotte}/designations` | owner, admin, avant toute participation |
 | POST | `.../cagnottes/{cagnotte}/draw` et `.../draw/reveal` | owner/admin après clôture, puis membre après `reveal_after` |
 | POST | `.../cagnottes/{cagnotte}/winners/{winner}/payout` et `.../confirm` | owner/admin, puis le gagnant |
+| POST | `.../cycles/{cycle}/contributions/{contribution}/pay` | le membre concerné, renvoie `checkout_url` |
+| POST | `orgs/{org}/cagnottes/{cagnotte}/pay {"amount"}` | membre, renvoie `checkout_url` |
+| GET | `orgs/{org}/payments/{payment}` | le payeur, trésorier ou responsables (relit le statut chez PayDunya) |
+| POST | `payments/paydunya/ipn`, `payouts/paydunya/callback` | PayDunya uniquement (signature SHA-512 de la clé principale) |
 
 ## Parcours type
 

@@ -10,13 +10,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\Organization;
+use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Remise des fonds au bénéficiaire, enregistrée par un responsable puis confirmée par le bénéficiaire. */
+/** Remise des fonds au bénéficiaire, manuelle ou par PayDunya, puis confirmée par le bénéficiaire. */
 class CagnotteHandoverController extends Controller
 {
     use AuthorizesOrganizationRoles;
+
+    public function __construct(private PayoutService $payouts) {}
 
     public function store(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
     {
@@ -34,21 +37,29 @@ class CagnotteHandoverController extends Controller
             throw new DomainRuleException('Clôturez la cagnotte avant d’enregistrer la remise des fonds.');
         }
 
+        PayoutService::ensureNoneInProgress($cagnotte);
+
         $data = $request->validate([
             'amount' => ['required', 'integer', 'min:1', 'max:'.max(1, $cagnotte->collectedAmount())],
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:100'],
+            'withdraw_mode' => ['required_if:method,paydunya', 'nullable', Rule::in(PayoutService::WITHDRAW_MODES)],
+            'phone' => ['required_if:method,paydunya', 'nullable', 'string', 'regex:/^[\d\s+]{8,16}$/'],
         ]);
 
-        $cagnotte->update([
-            'status' => CagnotteStatus::HandedOver,
-            'closed_at' => $cagnotte->closed_at ?? $cagnotte->ends_at,
-            'handover_amount' => $data['amount'],
-            'handover_method' => $data['method'],
-            'handover_reference' => $data['reference'] ?? null,
-            'handed_over_at' => now(),
-            'handover_recorded_by' => $request->user()->id,
-        ]);
+        if ($data['method'] === PaymentMethod::PayDunya->value) {
+            $this->payouts->send($cagnotte, $organization->id, $request->user(), (int) $data['amount'], $data['phone'], $data['withdraw_mode'], $cagnotte->beneficiary_user_id);
+        } else {
+            $cagnotte->update([
+                'status' => CagnotteStatus::HandedOver,
+                'closed_at' => $cagnotte->closed_at ?? $cagnotte->ends_at,
+                'handover_amount' => $data['amount'],
+                'handover_method' => $data['method'],
+                'handover_reference' => $data['reference'] ?? null,
+                'handed_over_at' => now(),
+                'handover_recorded_by' => $request->user()->id,
+            ]);
+        }
 
         return CagnotteResource::make($organization->cagnottes()->whereKey($cagnotte->id)->withDetail()->firstOrFail());
     }

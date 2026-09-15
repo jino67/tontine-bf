@@ -6,6 +6,7 @@ import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
 import '../../core/widgets/woven_band.dart';
+import '../payments/pay_online.dart';
 import 'models.dart';
 import 'record_payment_sheet.dart';
 import 'status_style.dart';
@@ -84,6 +85,14 @@ class _CycleDetailScreenState extends State<CycleDetailScreen> {
     }
   }
 
+  Future<void> _payOnline(Contribution contribution) async {
+    final paid = await payOnline(
+      context,
+      start: (payments) => payments.payContribution(widget.tontineId, contribution.cycleId, contribution.id),
+    );
+    if (paid) widget.repository.revision.value++;
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = SessionScope.of(context);
@@ -147,6 +156,7 @@ class _CycleDetailScreenState extends State<CycleDetailScreen> {
                             canRecord: canRecord,
                             onRecord: () => _record(cycle.contributions[i]),
                             onConfirm: () => _confirm(cycle, cycle.contributions[i]),
+                            onPayOnline: () => _payOnline(cycle.contributions[i]),
                           ),
                         ],
                       ],
@@ -277,6 +287,7 @@ class _ContributionRow extends StatelessWidget {
     required this.canRecord,
     required this.onRecord,
     required this.onConfirm,
+    required this.onPayOnline,
   });
 
   final Contribution contribution;
@@ -285,6 +296,7 @@ class _ContributionRow extends StatelessWidget {
   final bool canRecord;
   final VoidCallback onRecord;
   final VoidCallback onConfirm;
+  final VoidCallback onPayOnline;
 
   String get _details {
     if (contribution.amountPaid == 0) return 'Doit ${fcfa(contribution.amountDue)}';
@@ -306,6 +318,7 @@ class _ContributionRow extends StatelessWidget {
     final badge = contributionBadge(contribution, late: late);
     final showRecord = canRecord && contribution.status != ContributionStatus.confirmed;
     final showConfirm = isMine && contribution.status == ContributionStatus.recorded;
+    final showPay = isMine && contribution.status != ContributionStatus.confirmed && !contribution.isFullyPaid;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -331,7 +344,7 @@ class _ContributionRow extends StatelessWidget {
               StatusPill(label: badge.label, tone: badge.tone),
             ],
           ),
-          if (showRecord || showConfirm)
+          if (showRecord || showConfirm || showPay)
             Padding(
               padding: const EdgeInsets.only(left: 52, top: 10),
               child: Wrap(
@@ -346,6 +359,13 @@ class _ContributionRow extends StatelessWidget {
                     ),
                   if (showConfirm)
                     FilledButton(onPressed: onConfirm, style: CompactButtons.filled, child: const Text('Confirmer mon paiement')),
+                  if (showPay)
+                    FilledButton.icon(
+                      onPressed: onPayOnline,
+                      style: CompactButtons.filled,
+                      icon: const Icon(Icons.phone_iphone_rounded, size: 18),
+                      label: Text('Payer ${fcfa(contribution.amountDue - contribution.amountPaid)} en ligne'),
+                    ),
                 ],
               ),
             ),

@@ -85,12 +85,16 @@ enum PaymentMethod {
   orangeMoney('orange_money', 'Orange Money'),
   moovMoney('moov_money', 'Moov Money'),
   bankTransfer('virement', 'Virement'),
-  other('autre', 'Autre');
+  other('autre', 'Autre'),
+  paydunya('paydunya', 'PayDunya');
 
   const PaymentMethod(this.apiValue, this.label);
 
   final String apiValue;
   final String label;
+
+  /// Moyens saisis à la main. Un paiement PayDunya n'est jamais saisi : c'est le prestataire qui le confirme.
+  static List<PaymentMethod> get manual => [for (final method in values) if (method != paydunya) method];
 
   static PaymentMethod? fromApi(Object? value) {
     for (final method in values) {

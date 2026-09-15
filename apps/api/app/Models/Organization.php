@@ -52,6 +52,11 @@ class Organization extends Model
         return $this->hasMany(Cagnotte::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public static function uniqueSlug(string $name): string
     {
         $base = Str::slug($name) ?: 'organisation';

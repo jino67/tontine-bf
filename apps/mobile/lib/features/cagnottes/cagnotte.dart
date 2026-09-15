@@ -126,6 +126,39 @@ class CagnotteDraw {
   bool get canReveal => !isRevealed && !DateTime.now().isBefore(revealAfter);
 }
 
+enum CagnottePayoutStatus {
+  processing('en_cours'),
+  succeeded('reussie'),
+  failed('echouee');
+
+  const CagnottePayoutStatus(this.apiValue);
+
+  final String apiValue;
+
+  static CagnottePayoutStatus fromApi(Object? value) =>
+      values.firstWhere((status) => status.apiValue == value, orElse: () => processing);
+}
+
+/// Dernier envoi d'argent tenté par PayDunya pour un gain ou pour les fonds d'une cagnotte solidaire.
+class CagnottePayout {
+  const CagnottePayout({required this.status, required this.withdrawMode, required this.amount, this.failureReason});
+
+  factory CagnottePayout.fromJson(Map<String, dynamic> json) => CagnottePayout(
+        status: CagnottePayoutStatus.fromApi(json['status']),
+        withdrawMode: '${json['withdraw_mode'] ?? ''}',
+        amount: asInt(json['amount']),
+        failureReason: asStringOrNull(json['failure_reason']),
+      );
+
+  final CagnottePayoutStatus status;
+  final String withdrawMode;
+  final int amount;
+  final String? failureReason;
+
+  bool get isProcessing => status == CagnottePayoutStatus.processing;
+  bool get isFailed => status == CagnottePayoutStatus.failed;
+}
+
 class CagnotteWinner {
   const CagnotteWinner({
     required this.id,
@@ -137,6 +170,7 @@ class CagnotteWinner {
     this.paidMethod,
     this.paidReference,
     this.confirmedAt,
+    this.payout,
   });
 
   factory CagnotteWinner.fromJson(Map<String, dynamic> json) => CagnotteWinner(
@@ -149,6 +183,7 @@ class CagnotteWinner {
         paidMethod: PaymentMethod.fromApi(json['paid_method']),
         paidReference: asStringOrNull(json['paid_reference']),
         confirmedAt: asDate(json['confirmed_at']),
+        payout: json['payout'] is Map<String, dynamic> ? CagnottePayout.fromJson(json['payout'] as Map<String, dynamic>) : null,
       );
 
   final int id;
@@ -160,6 +195,7 @@ class CagnotteWinner {
   final PaymentMethod? paidMethod;
   final String? paidReference;
   final DateTime? confirmedAt;
+  final CagnottePayout? payout;
 }
 
 class CagnotteContribution {
@@ -221,6 +257,7 @@ class Cagnotte {
     this.contributionsCount,
     this.closedAt,
     this.handover,
+    this.handoverPayout,
     this.ticketPrice,
     this.winnersCount,
     this.feePercent = 0,
@@ -260,6 +297,9 @@ class Cagnotte {
       contributionsCount: asIntOrNull(json['contributions_count']),
       closedAt: asDate(json['closed_at']),
       handover: handover is Map<String, dynamic> ? CagnotteHandover.fromJson(handover) : null,
+      handoverPayout: json['handover_payout'] is Map<String, dynamic>
+          ? CagnottePayout.fromJson(json['handover_payout'] as Map<String, dynamic>)
+          : null,
       ticketPrice: asIntOrNull(json['ticket_price']),
       winnersCount: asIntOrNull(json['winners_count']),
       feePercent: asInt(json['fee_percent']),
@@ -292,6 +332,7 @@ class Cagnotte {
   final int? contributionsCount;
   final DateTime? closedAt;
   final CagnotteHandover? handover;
+  final CagnottePayout? handoverPayout;
   final int? ticketPrice;
   final int? winnersCount;
   final int feePercent;

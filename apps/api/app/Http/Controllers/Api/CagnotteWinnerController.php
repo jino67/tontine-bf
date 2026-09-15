@@ -10,13 +10,16 @@ use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\CagnotteWinner;
 use App\Models\Organization;
+use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Remise de chaque gain, enregistrée par un responsable puis confirmée par le gagnant. */
+/** Remise de chaque gain, manuelle ou par PayDunya, puis confirmée par le gagnant. */
 class CagnotteWinnerController extends Controller
 {
     use AuthorizesOrganizationRoles;
+
+    public function __construct(private PayoutService $payouts) {}
 
     public function payout(Request $request, Organization $organization, Cagnotte $cagnotte, CagnotteWinner $winner): CagnotteResource
     {
@@ -26,19 +29,27 @@ class CagnotteWinnerController extends Controller
             throw new DomainRuleException('La remise de ce gain est déjà enregistrée.');
         }
 
+        PayoutService::ensureNoneInProgress($winner);
+
         $data = $request->validate([
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:100'],
+            'withdraw_mode' => ['required_if:method,paydunya', 'nullable', Rule::in(PayoutService::WITHDRAW_MODES)],
+            'phone' => ['required_if:method,paydunya', 'nullable', 'string', 'regex:/^[\d\s+]{8,16}$/'],
         ]);
 
-        $winner->update([
-            'paid_at' => now(),
-            'paid_method' => $data['method'],
-            'paid_reference' => $data['reference'] ?? null,
-            'paid_by' => $request->user()->id,
-        ]);
+        if ($data['method'] === PaymentMethod::PayDunya->value) {
+            $this->payouts->send($winner, $organization->id, $request->user(), $winner->prize_amount, $data['phone'], $data['withdraw_mode'], $winner->user_id);
+        } else {
+            $winner->update([
+                'paid_at' => now(),
+                'paid_method' => $data['method'],
+                'paid_reference' => $data['reference'] ?? null,
+                'paid_by' => $request->user()->id,
+            ]);
+        }
 
-        return CagnotteResource::make($organization->cagnottes()->whereKey($cagnotte->id)->withDetail()->firstOrFail());
+        return $this->detail($organization, $cagnotte);
     }
 
     public function confirm(Request $request, Organization $organization, Cagnotte $cagnotte, CagnotteWinner $winner): CagnotteResource
@@ -53,6 +64,11 @@ class CagnotteWinnerController extends Controller
             $winner->update(['confirmed_at' => now()]);
         }
 
+        return $this->detail($organization, $cagnotte);
+    }
+
+    private function detail(Organization $organization, Cagnotte $cagnotte): CagnotteResource
+    {
         return CagnotteResource::make($organization->cagnottes()->whereKey($cagnotte->id)->withDetail()->firstOrFail());
     }
 }

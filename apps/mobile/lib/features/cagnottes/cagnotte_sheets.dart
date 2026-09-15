@@ -80,7 +80,7 @@ class _PaymentMethodChips extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final method in PaymentMethod.values)
+        for (final method in PaymentMethod.manual)
           ChoiceChip(
             label: Text(method.label),
             selected: value == method,
@@ -294,8 +294,10 @@ Future<bool?> showTransferSheet(
   required String title,
   required String message,
   required String submitLabel,
-  required Future<void> Function(int? amount, PaymentMethod method, String reference) onSubmit,
+  required Future<void> Function(TransferInput input) onSubmit,
   int? initialAmount,
+  bool allowPayDunya = false,
+  String? initialPhone,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -306,8 +308,117 @@ Future<bool?> showTransferSheet(
       submitLabel: submitLabel,
       onSubmit: onSubmit,
       initialAmount: initialAmount,
+      allowPayDunya: allowPayDunya,
+      initialPhone: initialPhone,
     ),
   );
+}
+
+typedef TransferInput = ({int? amount, PaymentMethod method, String reference, String? withdrawMode, String? phone});
+
+/// Opérateurs proposés pour une remise par PayDunya.
+const payoutOperators = [
+  (mode: 'orange-money-burkina', label: 'Orange Money Burkina'),
+  (mode: 'moov-burkina-faso', label: 'Moov Money Burkina'),
+];
+
+/// Montant d'une participation en ligne. Retourne null si la feuille est fermée.
+Future<int?> pickParticipationAmount(BuildContext context, Cagnotte cagnotte) {
+  return showModalBottomSheet<int>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => _AmountSheet(cagnotte: cagnotte),
+  );
+}
+
+class _AmountSheet extends StatefulWidget {
+  const _AmountSheet({required this.cagnotte});
+
+  final Cagnotte cagnotte;
+
+  @override
+  State<_AmountSheet> createState() => _AmountSheetState();
+}
+
+class _AmountSheetState extends State<_AmountSheet> {
+  late final TextEditingController _amount =
+      TextEditingController(text: '${widget.cagnotte.ticketPrice ?? widget.cagnotte.minAmount}');
+  String? _error;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final amount = int.tryParse(_amount.text);
+    if (amount == null || amount < widget.cagnotte.minAmount) {
+      setState(() => _error = 'La participation minimum est de ${fcfa(widget.cagnotte.minAmount)}.');
+      return;
+    }
+    Navigator.of(context).pop(amount);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cagnotte = widget.cagnotte;
+    final price = cagnotte.ticketPrice;
+    final amount = int.tryParse(_amount.text) ?? 0;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(cagnotte.isPrize ? 'Acheter des tickets' : 'Participer en ligne', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(
+              'Vous allez payer sur la page sécurisée PayDunya, par Orange Money, Moov Money ou carte. '
+              'Votre participation est enregistrée et confirmée dès que le paiement est validé.',
+              style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _amount,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: AppType.sans(size: 20, bold: true, tabular: true),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(labelText: 'Montant', suffixText: 'FCFA', errorText: _error),
+            ),
+            if (cagnotte.isPrize && price != null && price > 0) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final count in const [1, 2, 5, 10])
+                    ActionChip(
+                      label: Text(countLabel(count, 'ticket', 'tickets')),
+                      onPressed: () => setState(() => _amount.text = '${count * price}'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Donne ${countLabel(PrizeDraw.ticketsFor(amount, price), 'ticket', 'tickets')}.',
+                style: AppType.sans(bold: true, color: AppColors.goldText),
+              ),
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(onPressed: _submit, child: const Text('Continuer vers le paiement')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _TransferSheet extends StatefulWidget {
@@ -317,13 +428,17 @@ class _TransferSheet extends StatefulWidget {
     required this.submitLabel,
     required this.onSubmit,
     this.initialAmount,
+    this.allowPayDunya = false,
+    this.initialPhone,
   });
 
   final String title;
   final String message;
   final String submitLabel;
-  final Future<void> Function(int? amount, PaymentMethod method, String reference) onSubmit;
+  final Future<void> Function(TransferInput input) onSubmit;
   final int? initialAmount;
+  final bool allowPayDunya;
+  final String? initialPhone;
 
   @override
   State<_TransferSheet> createState() => _TransferSheetState();
@@ -331,14 +446,19 @@ class _TransferSheet extends StatefulWidget {
 
 class _TransferSheetState extends State<_TransferSheet> {
   late final TextEditingController _amount = TextEditingController(text: '${widget.initialAmount ?? ''}');
+  late final TextEditingController _phone =
+      TextEditingController(text: widget.initialPhone == null ? '' : phoneDisplay(widget.initialPhone!));
   final _reference = TextEditingController();
   PaymentMethod _method = PaymentMethod.cash;
+  bool _viaPayDunya = false;
+  String _withdrawMode = payoutOperators.first.mode;
   bool _saving = false;
   Map<String, String> _errors = const {};
 
   @override
   void dispose() {
     _amount.dispose();
+    _phone.dispose();
     _reference.dispose();
     super.dispose();
   }
@@ -350,12 +470,34 @@ class _TransferSheetState extends State<_TransferSheet> {
       return;
     }
 
+    if (_viaPayDunya) {
+      if (_phone.text.replaceAll(RegExp(r'\D'), '').length < 8) {
+        setState(() => _errors = {'phone': 'Saisissez le numéro mobile money qui reçoit l’argent.'});
+        return;
+      }
+      final operator = payoutOperators.firstWhere((operator) => operator.mode == _withdrawMode);
+      final confirmed = await confirmAction(
+        context,
+        title: 'Envoyer l’argent maintenant ?',
+        message: '${amount == null ? 'Le gain' : fcfa(amount)} partira par ${operator.label} vers le ${_phone.text.trim()}. '
+            'Un envoi ne peut pas être annulé.',
+        confirmLabel: 'Envoyer',
+      );
+      if (!confirmed || !mounted) return;
+    }
+
     setState(() {
       _saving = true;
       _errors = const {};
     });
     try {
-      await widget.onSubmit(amount, _method, _reference.text);
+      await widget.onSubmit((
+        amount: amount,
+        method: _viaPayDunya ? PaymentMethod.paydunya : _method,
+        reference: _reference.text,
+        withdrawMode: _viaPayDunya ? _withdrawMode : null,
+        phone: _viaPayDunya ? _phone.text.trim() : null,
+      ));
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {
       if (mounted) {
@@ -392,24 +534,64 @@ class _TransferSheetState extends State<_TransferSheet> {
               ),
               const SizedBox(height: 14),
             ],
-            Text('Moyen de remise', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            _PaymentMethodChips(value: _method, onChanged: (method) => setState(() => _method = method)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _reference,
-              decoration: InputDecoration(labelText: 'Référence (facultatif)', errorText: _errors['reference']),
-            ),
-            if (_errors['general'] != null || _errors['method'] != null) ...[
+            if (widget.allowPayDunya)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _viaPayDunya,
+                onChanged: (value) => setState(() => _viaPayDunya = value),
+                title: const Text('Envoyer par PayDunya'),
+                subtitle: const Text('L’argent part tout de suite vers un compte mobile money.'),
+              ),
+            if (_viaPayDunya) ...[
+              const SizedBox(height: 8),
+              Text('Opérateur', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final operator in payoutOperators)
+                    ChoiceChip(
+                      label: Text(operator.label),
+                      selected: _withdrawMode == operator.mode,
+                      showCheckmark: false,
+                      onSelected: (_) => setState(() => _withdrawMode = operator.mode),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _phone,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Numéro qui reçoit l’argent',
+                  hintText: '70 12 34 56',
+                  errorText: _errors['phone'],
+                ),
+              ),
+            ] else ...[
+              Text('Moyen de remise', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              _PaymentMethodChips(value: _method, onChanged: (method) => setState(() => _method = method)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _reference,
+                decoration: InputDecoration(labelText: 'Référence (facultatif)', errorText: _errors['reference']),
+              ),
+            ],
+            if (_errors['general'] != null || _errors['method'] != null || _errors['withdraw_mode'] != null) ...[
               const SizedBox(height: 12),
-              Text(_errors['general'] ?? _errors['method']!, style: AppType.sans(color: AppColors.chili)),
+              Text(
+                _errors['general'] ?? _errors['method'] ?? _errors['withdraw_mode']!,
+                style: AppType.sans(color: AppColors.chili),
+              ),
             ],
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: _saving ? const ButtonSpinner() : Text(widget.submitLabel),
+                child: _saving ? const ButtonSpinner() : Text(_viaPayDunya ? 'Envoyer par PayDunya' : widget.submitLabel),
               ),
             ),
           ],

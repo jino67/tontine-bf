@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Resources;
+
+use App\Enums\PaymentStatus;
+use App\Models\Contribution;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class PaymentResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'purpose' => $this->payable_type === (new Contribution)->getMorphClass() ? 'cotisation' : 'cagnotte',
+            'payable_id' => $this->payable_id,
+            'amount' => $this->amount,
+            'status' => $this->status->value,
+            'checkout_url' => $this->status === PaymentStatus::Pending ? $this->checkout_url : null,
+            'receipt_url' => $this->receipt_url,
+            'failure_reason' => $this->failure_reason,
+            // Faux si l'argent est reçu mais n'a pas pu être affecté : le trésorier doit le rapprocher.
+            'applied' => $this->applied_at !== null,
+            'paid_at' => $this->paid_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+}

@@ -29,6 +29,7 @@ return [
     ],
     'regex' => "Le format du champ :attribute n'est pas valide.",
     'required' => 'Le champ :attribute est obligatoire.',
+    'required_if' => 'Le champ :attribute est obligatoire.',
     'required_unless' => 'Le champ :attribute est obligatoire.',
     'required_without' => 'Le champ :attribute est obligatoire.',
     'string' => 'Le champ :attribute doit être un texte.',
@@ -42,6 +43,12 @@ return [
         ],
         'ends_at' => [
             'before' => 'La date de fin doit être dans moins d’un an.',
+        ],
+        'phone' => [
+            'required_if' => 'Indiquez le numéro mobile money qui reçoit l’argent.',
+        ],
+        'withdraw_mode' => [
+            'required_if' => 'Choisissez l’opérateur mobile money.',
         ],
     ],
 
@@ -89,5 +96,6 @@ return [
         'type' => 'type',
         'user_id' => 'membre',
         'winners_count' => 'nombre de gagnants',
+        'withdraw_mode' => 'opérateur',
     ],
 ];

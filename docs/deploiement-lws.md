@@ -66,7 +66,25 @@ DB_PASSWORD=<mot de passe>
 SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
+
+# PayDunya : clés du menu « Intégrez notre API ». Commencer en test, passer en live après un essai réel.
+PAYDUNYA_MODE=live
+PAYDUNYA_MASTER_KEY=<clé principale>
+PAYDUNYA_PUBLIC_KEY=<clé publique live>
+PAYDUNYA_PRIVATE_KEY=<clé privée live>
+PAYDUNYA_TOKEN=<token live>
+PAYDUNYA_STORE_NAME="Tontine BF"
+# Les remises envoient de l'argent réel : activer seulement quand le solde PayDunya et les tests sont prêts.
+PAYDUNYA_PAYOUTS_ENABLED=false
 ```
+
+**Paiements PayDunya** :
+
+- Les clés de production se saisissent uniquement dans ce `.env`, jamais dans le dépôt ni dans une conversation. Si une clé privée ou un token a circulé (capture d'écran, message), le régénérer dans PayDunya avant l'ouverture.
+- `APP_URL` doit être l'adresse publique en `https` : elle sert à construire les adresses de retour et de notification envoyées à PayDunya.
+- Adresses appelées par PayDunya, à laisser accessibles sans authentification : `https://api.<domaine>/api/v1/payments/paydunya/ipn` (paiements) et `https://api.<domaine>/api/v1/payouts/paydunya/callback` (remises). Leur signature est vérifiée, puis le statut est relu auprès de PayDunya.
+- La page `https://api.<domaine>/paiement/retour` s'affiche au membre après le paiement.
+- Il n'existe pas de sandbox pour les remises : un test de remise déplace de l'argent réel.
 
 **Important** : en `APP_ENV=production`, l'API refuse d'envoyer les codes OTP tant qu'aucun fournisseur SMS n'est branché. Personne ne peut donc se connecter. Pour tester sur LWS avant cette intégration, utiliser `APP_ENV=staging` : les codes sont alors écrits dans `storage/logs`.
 

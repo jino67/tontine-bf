@@ -145,7 +145,7 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final method in PaymentMethod.values)
+                for (final method in PaymentMethod.manual)
                   ChoiceChip(
                     label: Text(method.label),
                     selected: _method == method,

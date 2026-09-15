@@ -37,8 +37,9 @@ const helpTopics = [
     questions: [
       HelpQuestion(
         'Comment payer ma cotisation ?',
-        'Comme d’habitude : en espèces ou par Orange Money ou Moov Money, auprès du trésorier. '
-            'L’application ne prélève rien. Le trésorier enregistre votre paiement, puis vous le confirmez.',
+        'En ligne : touchez « Payer en ligne », payez sur la page PayDunya (Orange Money, Moov Money ou carte) et revenez '
+            'dans l’application, la cotisation est confirmée automatiquement. En espèces : le trésorier enregistre votre '
+            'paiement, puis vous le confirmez.',
       ),
       HelpQuestion(
         'Pourquoi dois-je confirmer mon paiement ?',
@@ -128,8 +129,9 @@ const helpTopics = [
             'Le trésorier enregistre les paiements. Les membres cotisent et confirment leurs paiements.',
       ),
       HelpQuestion(
-        'L’application garde-t-elle mon argent ?',
-        'Non. Aucun argent ne transite par Tontine BF : l’application enregistre et vérifie, elle ne détient aucun fonds.',
+        'Où va l’argent payé en ligne ?',
+        'Il est encaissé par PayDunya, prestataire de paiement, puis remis aux bénéficiaires et aux gagnants par le responsable. '
+            'Chaque remise est enregistrée et confirmée par la personne qui la reçoit. Un paiement en espèces reste entre vous et le trésorier.',
       ),
     ],
   ),

@@ -29,7 +29,7 @@ class ContributionController extends Controller
 
         $data = $request->validate([
             'amount_paid' => ['required', 'integer', 'min:0', 'max:'.$contribution->amount_due],
-            'method' => ['required_unless:amount_paid,0', 'nullable', Rule::enum(PaymentMethod::class)],
+            'method' => ['required_unless:amount_paid,0', 'nullable', Rule::enum(PaymentMethod::class)->except(PaymentMethod::PayDunya)],
             'reference' => ['nullable', 'string', 'max:100'],
             'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
         ]);

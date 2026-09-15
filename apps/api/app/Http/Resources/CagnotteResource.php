@@ -42,6 +42,7 @@ class CagnotteResource extends JsonResource
                 'handed_over_at' => $this->handed_over_at->toIso8601String(),
                 'confirmed_at' => $this->handover_confirmed_at?->toIso8601String(),
             ],
+            'handover_payout' => $this->whenLoaded('latestPayout', fn () => PayoutResource::make($this->latestPayout)),
             'ticket_price' => $this->ticket_price,
             'winners_count' => $this->winners_count,
             'fee_percent' => $this->fee_percent,

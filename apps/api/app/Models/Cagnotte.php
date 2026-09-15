@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
  * Collecte à durée limitée, en deux modes :
@@ -87,6 +88,12 @@ class Cagnotte extends Model
         return $this->hasMany(CagnotteWinner::class);
     }
 
+    /** Dernière remise des fonds tentée par PayDunya (cagnotte solidaire). */
+    public function latestPayout(): MorphOne
+    {
+        return $this->morphOne(Payout::class, 'payable')->latestOfMany();
+    }
+
     public function scopeWithTotals(Builder $query): void
     {
         $query->withSum('contributions as collected_amount', 'amount')
@@ -98,10 +105,12 @@ class Cagnotte extends Model
     {
         $query->withTotals()->with([
             'beneficiary',
+            'latestPayout',
             'contributions' => fn ($contributions) => $contributions->latest('paid_at')->latest('id'),
             'contributions.user',
             'winners' => fn ($winners) => $winners->orderBy('rank'),
             'winners.user',
+            'winners.latestPayout',
         ]);
     }
 

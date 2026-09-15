@@ -553,9 +553,10 @@ Ensuite : iOS, marque blanche, langues nationales, USSD, épargne personnelle, m
 
 ### Milestone 6 : paiements
 
-- [ ] Comparatif et contrat agrégateur
-- [ ] Initiation de paiement avec idempotence
-- [ ] Webhooks signés et file de traitement
+- [x] Agrégateur retenu : PayDunya (paiements par facture, remises par déboursement)
+- [x] Initiation de paiement, application unique du résultat relu chez PayDunya
+- [x] Notifications signées (SHA-512 de la clé principale) pour paiements et remises
+- [ ] Traitement des notifications en file d'attente
 - [ ] Réconciliation quotidienne et alertes
 - [ ] Écritures `ledger_entries`
 

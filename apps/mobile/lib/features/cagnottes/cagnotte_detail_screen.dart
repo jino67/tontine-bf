@@ -10,6 +10,7 @@ import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
 import '../../core/widgets/verification.dart';
 import '../organizations/organization.dart';
+import '../payments/pay_online.dart';
 import '../tontines/models.dart' show ContributionStatus, PaymentMethod;
 import 'cagnotte.dart';
 import 'cagnotte_repository.dart';
@@ -109,8 +110,15 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
       message: 'Somme réunie : ${fcfa(cagnotte.collectedAmount)}. Indiquez ce qui a été remis à ${cagnotte.beneficiary?.name ?? 'la personne'}.',
       submitLabel: 'Enregistrer la remise',
       initialAmount: cagnotte.collectedAmount,
-      onSubmit: (amount, method, reference) =>
-          widget.repository.recordHandover(cagnotte.id, amount: amount!, method: method, reference: reference),
+      allowPayDunya: true,
+      onSubmit: (input) => widget.repository.recordHandover(
+        cagnotte.id,
+        amount: input.amount!,
+        method: input.method,
+        reference: input.reference,
+        withdrawMode: input.withdrawMode,
+        phone: input.phone,
+      ),
     );
     if (saved == true && mounted) showDone(context, 'Remise des fonds enregistrée');
   }
@@ -121,8 +129,16 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
       title: 'Remise du gain',
       message: '${capitalize(ordinal(winner.rank))} gain : ${fcfa(winner.prizeAmount)} pour ${winner.user?.displayName ?? 'le gagnant'}.',
       submitLabel: 'Enregistrer la remise',
-      onSubmit: (_, method, reference) =>
-          widget.repository.recordPayout(cagnotte.id, winner.id, method: method, reference: reference),
+      allowPayDunya: true,
+      initialPhone: winner.user?.phone,
+      onSubmit: (input) => widget.repository.recordPayout(
+        cagnotte.id,
+        winner.id,
+        method: input.method,
+        reference: input.reference,
+        withdrawMode: input.withdrawMode,
+        phone: input.phone,
+      ),
     );
     if (saved == true && mounted) showDone(context, 'Remise du gain enregistrée');
   }
@@ -130,6 +146,13 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
   Future<void> _designate(Cagnotte cagnotte) async {
     final saved = await showDesignationsSheet(context, repository: widget.repository, cagnotte: cagnotte);
     if (saved == true && mounted) showDone(context, 'Rangs publiés');
+  }
+
+  Future<void> _participateOnline(Cagnotte cagnotte) async {
+    final amount = await pickParticipationAmount(context, cagnotte);
+    if (amount == null || !mounted) return;
+    final paid = await payOnline(context, start: (payments) => payments.payCagnotte(cagnotte.id, amount));
+    if (paid) widget.repository.revision.value++;
   }
 
   Future<void> _commitDraw(Cagnotte cagnotte) async {
@@ -172,6 +195,15 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: _Hero(cagnotte: cagnotte, onFinished: _refresh),
                 ),
+                if (cagnotte.acceptsContributions)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: FilledButton.icon(
+                      onPressed: () => _participateOnline(cagnotte),
+                      icon: const Icon(Icons.phone_iphone_rounded),
+                      label: Text(cagnotte.isPrize ? 'Acheter des tickets en ligne' : 'Participer en ligne'),
+                    ),
+                  ),
                 if (cagnotte.isPrize) ..._prizeSections(cagnotte, role, me) else ..._solidaritySections(cagnotte, role, me),
                 ..._contributionSections(cagnotte, role, me),
                 if (role.canManage && cagnotte.isOpen)
@@ -229,6 +261,16 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
           ],
         ),
       );
+    } else if (cagnotte.handoverPayout?.isProcessing ?? false) {
+      handoverBody = Panel(
+        color: AppColors.indigoSoft,
+        borderColor: AppColors.indigoSoft,
+        child: Text(
+          'Envoi par PayDunya en cours : ${fcfa(cagnotte.handoverPayout!.amount)} vers le compte mobile money indiqué. '
+          'La remise sera enregistrée dès que PayDunya confirme.',
+          style: theme.textTheme.bodyLarge,
+        ),
+      );
     } else if (cagnotte.isOpen) {
       handoverBody = Panel(
         child: Text('Les fonds seront remis à la clôture de la cagnotte.', style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted)),
@@ -238,7 +280,17 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('La collecte est terminée. Remettez les fonds au bénéficiaire, puis enregistrez la remise.', style: theme.textTheme.bodyLarge),
+            Text(
+              'La collecte est terminée. Envoyez les fonds par PayDunya, ou remettez-les puis enregistrez la remise.',
+              style: theme.textTheme.bodyLarge,
+            ),
+            if (cagnotte.handoverPayout?.isFailed ?? false) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Le dernier envoi PayDunya a échoué${cagnotte.handoverPayout!.failureReason == null ? '.' : ' : ${cagnotte.handoverPayout!.failureReason}'}',
+                style: AppType.sans(size: 14, color: AppColors.chili),
+              ),
+            ],
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _busy ? null : () => _handover(cagnotte),
@@ -683,12 +735,13 @@ class _WinnerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final name = winner.user?.displayName ?? 'Membre';
+    final sending = winner.payout?.isProcessing ?? false;
     final badge = winner.paidAt == null
-        ? (label: 'À remettre', tone: Tone.gold)
+        ? (sending ? (label: 'Envoi en cours', tone: Tone.indigo) : (label: 'À remettre', tone: Tone.gold))
         : winner.confirmedAt == null
             ? (label: 'À confirmer', tone: Tone.gold)
             : (label: 'Reçu', tone: Tone.positive);
-    final showPayout = canManage && winner.paidAt == null;
+    final showPayout = canManage && winner.paidAt == null && !sending;
     final showConfirm = isMe && winner.paidAt != null && winner.confirmedAt == null;
 
     return Padding(
@@ -725,6 +778,14 @@ class _WinnerRow extends StatelessWidget {
                 'Remis le ${dateAndTime(winner.paidAt!)}${_how(winner.paidMethod)}'
                 '${winner.paidReference == null ? '' : ', référence ${winner.paidReference}'}',
                 style: theme.textTheme.bodySmall,
+              ),
+            ),
+          if (winner.paidAt == null && (winner.payout?.isFailed ?? false))
+            Padding(
+              padding: const EdgeInsets.only(left: 48, top: 6),
+              child: Text(
+                'Le dernier envoi PayDunya a échoué${winner.payout!.failureReason == null ? '.' : ' : ${winner.payout!.failureReason}'}',
+                style: AppType.sans(size: 14, color: AppColors.chili),
               ),
             ),
           if (showPayout || showConfirm)

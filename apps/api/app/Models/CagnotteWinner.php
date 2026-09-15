@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PaymentMethod;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /** Gagnant d'une cagnotte : tiré au sort ou attribué publiquement par le responsable (designated). */
 class CagnotteWinner extends Model
@@ -35,5 +36,11 @@ class CagnotteWinner extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Dernière remise tentée par PayDunya. */
+    public function latestPayout(): MorphOne
+    {
+        return $this->morphOne(Payout::class, 'payable')->latestOfMany();
     }
 }

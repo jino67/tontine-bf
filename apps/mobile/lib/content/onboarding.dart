@@ -30,5 +30,5 @@ const onboardingPages = [
   ),
 ];
 
-const onboardingMoneyNote = "Tontine BF ne garde pas votre argent. Les cotisations se paient comme d'habitude, "
-    'en espèces ou par mobile money. L’application sert à les suivre.';
+const onboardingMoneyNote = 'Payez en espèces auprès du trésorier, ou en ligne par Orange Money, Moov Money ou carte '
+    'grâce à PayDunya. Un paiement en ligne est confirmé automatiquement.';
