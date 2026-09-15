@@ -1,0 +1,158 @@
+import 'package:flutter/foundation.dart';
+
+import '../../core/api/api_client.dart';
+import '../../core/json.dart';
+import '../tontines/models.dart' show PaymentMethod;
+import 'cagnotte.dart';
+
+class CagnotteDraft {
+  const CagnotteDraft({
+    required this.mode,
+    required this.title,
+    required this.duration,
+    this.description,
+    this.endsAt,
+    this.targetAmount,
+    this.minAmount,
+    this.beneficiaryUserId,
+    this.beneficiaryName,
+    this.ticketPrice,
+    this.winnersCount,
+    this.feePercent,
+    this.designations = const {},
+  });
+
+  final CagnotteMode mode;
+  final String title;
+  final CagnotteDuration duration;
+  final String? description;
+  final DateTime? endsAt;
+  final int? targetAmount;
+  final int? minAmount;
+  final int? beneficiaryUserId;
+  final String? beneficiaryName;
+  final int? ticketPrice;
+  final int? winnersCount;
+  final int? feePercent;
+
+  /// Rang attribué, puis identifiant du membre.
+  final Map<int, int> designations;
+
+  Map<String, dynamic> toJson() => {
+        'mode': mode.apiValue,
+        'title': title,
+        'description': description,
+        'duration': duration.apiValue,
+        if (duration == CagnotteDuration.custom) 'ends_at': endsAt?.toUtc().toIso8601String(),
+        'target_amount': targetAmount,
+        if (mode == CagnotteMode.solidarity) ...{
+          'min_amount': minAmount,
+          'beneficiary_user_id': beneficiaryUserId,
+          'beneficiary_name': beneficiaryName,
+        },
+        if (mode == CagnotteMode.prize) ...{
+          'ticket_price': ticketPrice,
+          'winners_count': winnersCount,
+          'fee_percent': feePercent ?? 0,
+          'designations': designationsJson(designations),
+        },
+      };
+
+  static List<Map<String, int>> designationsJson(Map<int, int> designations) => [
+        for (final entry in designations.entries) {'rank': entry.key, 'user_id': entry.value},
+      ];
+}
+
+/// Cagnottes de l'organisation courante.
+class CagnotteRepository {
+  CagnotteRepository(this._api, this.organizationId);
+
+  final ApiClient _api;
+  final int organizationId;
+
+  /// Incrémenté après chaque modification : les écrans à l'écoute se rechargent.
+  final revision = ValueNotifier<int>(0);
+
+  String get _base => '/orgs/$organizationId/cagnottes';
+
+  Cagnotte _changed(Object? body) {
+    revision.value++;
+    return Cagnotte.fromJson(asMap(unwrap(body)));
+  }
+
+  static String? _clean(String? text) => (text ?? '').trim().isEmpty ? null : text!.trim();
+
+  Future<List<Cagnotte>> list() async {
+    final now = DateTime.now();
+    return asMapList(unwrap(await _api.get(_base))).map((json) => Cagnotte.fromJson(json, now: now)).toList();
+  }
+
+  Future<Cagnotte> get(int cagnotteId) async => Cagnotte.fromJson(asMap(unwrap(await _api.get('$_base/$cagnotteId'))));
+
+  Future<Cagnotte> create(CagnotteDraft draft) async => _changed(await _api.post(_base, draft.toJson()));
+
+  Future<Cagnotte> close(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/close'));
+
+  Future<void> recordContribution(
+    int cagnotteId, {
+    required int userId,
+    required int amount,
+    required PaymentMethod method,
+    String? reference,
+  }) async {
+    await _api.post('$_base/$cagnotteId/contributions', {
+      'user_id': userId,
+      'amount': amount,
+      'method': method.apiValue,
+      'reference': _clean(reference),
+    });
+    revision.value++;
+  }
+
+  Future<void> updateContribution(
+    int cagnotteId,
+    int contributionId, {
+    required int amount,
+    required PaymentMethod method,
+    String? reference,
+  }) async {
+    await _api.put('$_base/$cagnotteId/contributions/$contributionId', {
+      'amount': amount,
+      'method': method.apiValue,
+      'reference': _clean(reference),
+    });
+    revision.value++;
+  }
+
+  Future<void> confirmContribution(int cagnotteId, int contributionId) async {
+    await _api.post('$_base/$cagnotteId/contributions/$contributionId/confirm');
+    revision.value++;
+  }
+
+  Future<Cagnotte> recordHandover(int cagnotteId, {required int amount, required PaymentMethod method, String? reference}) async =>
+      _changed(await _api.post('$_base/$cagnotteId/handover', {
+        'amount': amount,
+        'method': method.apiValue,
+        'reference': _clean(reference),
+      }));
+
+  Future<Cagnotte> confirmHandover(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/handover/confirm'));
+
+  Future<Cagnotte> setDesignations(int cagnotteId, Map<int, int> designations) async => _changed(
+        await _api.put('$_base/$cagnotteId/designations', {'designations': CagnotteDraft.designationsJson(designations)}),
+      );
+
+  Future<Cagnotte> commitDraw(int cagnotteId, DateTime revealAfter) async =>
+      _changed(await _api.post('$_base/$cagnotteId/draw', {'reveal_after': revealAfter.toUtc().toIso8601String()}));
+
+  Future<Cagnotte> revealDraw(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/draw/reveal'));
+
+  Future<Cagnotte> recordPayout(int cagnotteId, int winnerId, {required PaymentMethod method, String? reference}) async =>
+      _changed(await _api.post('$_base/$cagnotteId/winners/$winnerId/payout', {
+        'method': method.apiValue,
+        'reference': _clean(reference),
+      }));
+
+  Future<Cagnotte> confirmPayout(int cagnotteId, int winnerId) async =>
+      _changed(await _api.post('$_base/$cagnotteId/winners/$winnerId/confirm'));
+}

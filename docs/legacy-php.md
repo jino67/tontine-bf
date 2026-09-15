@@ -35,7 +35,7 @@ Aucun fichier SQL n'était fourni. Tables déduites des requêtes :
 ## Points de sécurité relevés
 
 1. **Identifiants MySQL en clair** dans 3 fichiers déployés sur un serveur web. Le projet a quitté Hostinger pour LWS. Action : vérifier que le compte Hostinger est bien résilié, et que le site `poupecosmetic.com/api/` et la base `u347369184_tontine_bf` n'existent plus. S'ils sont encore en ligne, changer le mot de passe de la base puis supprimer les scripts.
-2. **Tirage truqué** : `executerTirage()` lit `tirage_config`. Pour chaque rang configuré, le gagnant est l'utilisateur choisi par l'admin, sans tirage. Le gain est ensuite crédité sur son portefeuille. Seuls les rangs non configurés sont tirés au hasard. Ce mécanisme n'est pas repris.
+2. **Tirage truqué** : `executerTirage()` lit `tirage_config`. Pour chaque rang configuré, le gagnant est l'utilisateur choisi par l'admin, sans tirage. Le gain est ensuite crédité sur son portefeuille. Seuls les rangs non configurés sont tirés au hasard, et rien ne le montre aux participants. Ce mécanisme caché n'est pas repris : dans la nouvelle API, un rang attribué par le responsable est affiché à tous avant la première participation, puis verrouillé.
 3. **Aucune autorisation réelle** : `user_id` pris dans le corps de la requête (scripts mysqli) ou jeton égal à l'identifiant (scripts PDO).
 4. **Messages d'erreur SQL** renvoyés au client, `display_errors` activé, CORS ouvert à tous.
 5. **Montants en flottants** et répartition des gains arrondie à 2 décimales en francs CFA.
@@ -51,5 +51,6 @@ Aucun fichier SQL n'était fourni. Tables déduites des requêtes :
 | `search_users` (annuaire ouvert) | supprimé, remplacé par les invitations |
 | `get_dashboard_stats` | à venir |
 | `wallet_api.php` | supprimé (pas de détention de fonds) |
-| `cagnotte_api.php`, `tirage_api.php` | supprimés. Remplacés par le tirage vérifiable des tontines `tirage_ordre` |
+| `cagnotte_api.php` | `orgs/{org}/cagnottes` (modes `solidaire` et `gagnants`, durée limitée, tickets entiers) |
+| `tirage_api.php` | `orgs/{org}/cagnottes/{c}/designations`, `.../draw`, `.../draw/reveal` : rangs attribués publics et tirage vérifiable |
 | `groupe_api.php`, `notification_api.php` | reportés (phase 3) |

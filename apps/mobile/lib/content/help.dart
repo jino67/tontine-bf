@@ -78,11 +78,40 @@ const helpTopics = [
       HelpQuestion(
         'Comment savoir que le tirage n’est pas arrangé ?',
         'Au lancement, l’application publie l’empreinte d’une graine secrète. La graine n’est révélée qu’après la date annoncée. '
-            'Votre téléphone vérifie alors que la graine correspond à l’empreinte et recalcule lui-même l’ordre de passage.',
+            'Votre téléphone vérifie alors que la graine correspond à l’empreinte et recalcule lui-même le résultat.',
+      ),
+      HelpQuestion(
+        'Le responsable peut-il choisir qui passe ou qui gagne ?',
+        'Oui, mais jamais en secret. Un tour attribué est publié à tous au lancement du tirage. Un gain attribué est affiché '
+            'avec le nom du membre avant la première participation, puis il ne peut plus changer. Tout le reste est tiré au sort.',
       ),
       HelpQuestion(
         'Qui peut révéler le tirage ?',
-        'N’importe quel membre de la tontine, une fois la date de révélation passée. Le responsable ne peut pas le faire plus tôt.',
+        'N’importe quel membre, une fois la date de révélation passée. Le responsable ne peut pas le faire plus tôt.',
+      ),
+    ],
+  ),
+  HelpTopic(
+    title: 'Cagnottes',
+    questions: [
+      HelpQuestion(
+        'Quelle différence entre les deux cagnottes ?',
+        'La cagnotte solidaire réunit de l’argent pour une personne, membre ou non. La cagnotte à gagnants donne des tickets '
+            'à chaque participation, puis des gagnants sont tirés au sort à la clôture.',
+      ),
+      HelpQuestion(
+        'Combien de tickets ai-je ?',
+        'Un ticket par tranche complète du prix du ticket. Avec un ticket à 500 FCFA, une participation de 1 200 FCFA donne 2 tickets.',
+      ),
+      HelpQuestion(
+        'Que se passe-t-il à la fin du compte à rebours ?',
+        'La cagnotte se ferme toute seule : plus aucune participation n’est acceptée. Le responsable remet alors les fonds, '
+            'ou lance le tirage des gagnants.',
+      ),
+      HelpQuestion(
+        'Comment les gains sont-ils calculés ?',
+        'La commission éventuelle, affichée dès la création, est retenue sur la somme réunie. Le reste est partagé selon le '
+            'pourcentage de chaque rang. S’il y a moins de gagnants que de rangs, tout est réparti entre les gagnants.',
       ),
     ],
   ),

@@ -23,9 +23,9 @@ const onboardingPages = [
     fills: [1, 1, 1, 1, 0.5, 0],
   ),
   OnboardingPage(
-    title: "Un tirage que personne ne peut arranger",
-    body: "L'ordre de passage peut être tiré au sort de façon vérifiable : "
-        'chaque membre recalcule le résultat sur son propre téléphone.',
+    title: 'Des tirages vérifiables par tous',
+    body: "Ordre de passage et gagnants des cagnottes : chaque membre recalcule le résultat sur son téléphone. "
+        'Un tour ou un gain attribué par le responsable est affiché à tous, à l’avance.',
     fills: [1, 1, 1, 1, 1, 1],
   ),
 ];

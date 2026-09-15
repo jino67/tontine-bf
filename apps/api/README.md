@@ -25,7 +25,8 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 - **Rôles** : `owner` et `admin` gèrent, `tresorier` enregistre les paiements et voit toutes les tontines, `membre` ne voit que ses tontines. Le numéro des autres membres est masqué pour un simple membre.
 - **Montants** : entiers en francs CFA.
 - **Cotisations** : le trésorier enregistre, le membre confirme. Une cotisation confirmée ne peut plus être modifiée.
-- **Tirage vérifiable** (type `tirage_ordre`) : l'empreinte `sha256` de la graine est publiée d'abord, la graine n'est révélée qu'après la date annoncée, et l'ordre se recalcule sans l'application.
+- **Tirage vérifiable** (type `tirage_ordre`) : l'empreinte `sha256` de la graine est publiée d'abord, la graine n'est révélée qu'après la date annoncée, et l'ordre se recalcule sans l'application. Le responsable peut attribuer des tours (`designations`) : ils sont publiés avec l'empreinte et visibles de tous.
+- **Cagnottes** : durée `flash_24h`, `hebdo_7j`, `mensuelle_30j` ou `personnalisee` ; une cagnotte ouverte dont `ends_at` est passé est vue comme clôturée. Mode `solidaire` : remise des fonds enregistrée par un responsable, confirmée par le bénéficiaire membre. Mode `gagnants` : un ticket par tranche de `ticket_price`, gains répartis selon `prize_split` après `fee_percent`, rangs attribués modifiables tant qu'aucune participation n'existe, tirage vérifiable après clôture, remise de chaque gain confirmée par le gagnant.
 - **Erreurs** : validation en 422 avec `errors`, règle métier en 422 avec `message`, droits en 403.
 
 ## Endpoints `/api/v1`
@@ -54,6 +55,15 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 | POST | `.../cycles/{cycle}/contributions/{contribution}/confirm` | le membre concerné |
 | GET, POST | `orgs/{org}/tontines/{tontine}/draw` | lecture participant, création owner/admin |
 | POST | `orgs/{org}/tontines/{tontine}/draw/reveal` | participant, après `reveal_after` |
+| GET, POST | `orgs/{org}/cagnottes` | lecture membre, création owner/admin |
+| GET | `orgs/{org}/cagnottes/{cagnotte}` | membre |
+| POST | `orgs/{org}/cagnottes/{cagnotte}/close` | owner, admin |
+| POST, PUT | `.../cagnottes/{cagnotte}/contributions[/{contribution}]` | trésorier, owner, admin |
+| POST | `.../cagnottes/{cagnotte}/contributions/{contribution}/confirm` | la personne concernée |
+| POST | `.../cagnottes/{cagnotte}/handover` et `.../handover/confirm` | owner/admin, puis le bénéficiaire |
+| PUT | `.../cagnottes/{cagnotte}/designations` | owner, admin, avant toute participation |
+| POST | `.../cagnottes/{cagnotte}/draw` et `.../draw/reveal` | owner/admin après clôture, puis membre après `reveal_after` |
+| POST | `.../cagnottes/{cagnotte}/winners/{winner}/payout` et `.../confirm` | owner/admin, puis le gagnant |
 
 ## Parcours type
 
@@ -66,7 +76,8 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 
 ## Valeurs des énumérations
 
-- `type` : `rotative`, `tirage_ordre`, `epargne_groupe`, `cagnotte_solidaire`, `epargne_perso`
+- `type` : `rotative`, `tirage_ordre`, `epargne_groupe`, `epargne_perso`
+- cagnotte `mode` : `solidaire`, `gagnants` ; `status` : `ouverte`, `cloturee`, `remise`, `tiree`, `annulee`
 - `frequency` : `quotidien`, `hebdomadaire`, `mensuel`
 - `method` : `especes`, `orange_money`, `moov_money`, `virement`, `autre`
 - statut tontine : `brouillon`, `active`, `terminee`, `annulee`

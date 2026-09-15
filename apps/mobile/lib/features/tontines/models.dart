@@ -7,7 +7,6 @@ enum TontineType {
   rotative('rotative', 'Tour de rôle', Icons.autorenew_rounded),
   drawOrder('tirage_ordre', 'Ordre tiré au sort', Icons.casino_outlined),
   groupSavings('epargne_groupe', 'Épargne de groupe', Icons.groups_2_outlined),
-  solidarityPot('cagnotte_solidaire', 'Cagnotte solidaire', Icons.volunteer_activism_outlined),
   personalSavings('epargne_perso', 'Épargne personnelle', Icons.savings_outlined);
 
   const TontineType(this.apiValue, this.label, this.icon);
@@ -314,12 +313,26 @@ class MyContribution {
   bool get isSettled => contribution.status != ContributionStatus.pending && contribution.isFullyPaid;
 }
 
+/// Tour attribué par le responsable, publié avec l'empreinte et visible de tous.
+class DrawDesignation {
+  const DrawDesignation({required this.cycle, required this.slot});
+
+  factory DrawDesignation.fromJson(Map<String, dynamic> json) =>
+      DrawDesignation(cycle: asInt(json['cycle']), slot: '${json['slot'] ?? ''}');
+
+  final int cycle;
+  final String slot;
+
+  int get memberId => Draw.memberIdOf(slot);
+}
+
 class Draw {
   const Draw({
     required this.id,
     required this.seedHash,
     required this.slots,
     required this.revealAfter,
+    this.designations = const [],
     this.revealedAt,
     this.seed,
     this.order = const [],
@@ -329,6 +342,7 @@ class Draw {
         id: asInt(json['id']),
         seedHash: '${json['seed_hash'] ?? ''}',
         slots: asStringList(json['slots']),
+        designations: asMapList(json['designations']).map(DrawDesignation.fromJson).toList(),
         revealAfter: asDate(json['reveal_after']) ?? DateTime.now(),
         revealedAt: asDate(json['revealed_at']),
         seed: asStringOrNull(json['seed']),
@@ -337,11 +351,18 @@ class Draw {
 
   final int id;
   final String seedHash;
+
+  /// Parts tirées au sort, sans celles des tours attribués.
   final List<String> slots;
+  final List<DrawDesignation> designations;
   final DateTime revealAfter;
   final DateTime? revealedAt;
   final String? seed;
   final List<String> order;
+
+  int get cyclesCount => slots.length + designations.length;
+
+  Set<int> get designatedCycles => {for (final designation in designations) designation.cycle};
 
   bool get isRevealed => revealedAt != null && seed != null;
   bool get canReveal => !isRevealed && !DateTime.now().isBefore(revealAfter);

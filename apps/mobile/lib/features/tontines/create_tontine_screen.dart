@@ -239,7 +239,7 @@ class _CreateTontineScreenState extends State<CreateTontineScreen> {
               controller: _goal,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: _type == TontineType.solidarityPot ? 'Pour qui ou pour quoi ?' : 'Objectif (facultatif)',
+                labelText: 'Objectif (facultatif)',
                 errorText: _serverErrors['goal'],
               ),
             ),

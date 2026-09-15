@@ -97,19 +97,23 @@ Le téléphone n'envoie aucun jeton, aucun cookie. Le serveur ne peut donc se fi
 
 **À faire :** authentification par OTP SMS + jeton Laravel Sanctum, identité toujours déduite du jeton côté serveur, politiques d'autorisation par ressource, limitation de débit.
 
-### 2.2 Le « tirage hybride » doit disparaître
+### 2.2 Le « tirage hybride » discret est remplacé par une attribution publique
 
-`admin_tirage_config.dart` et `tirage_service.dart` décrivent une « sélection admin discrète » qui fixe les gagnants de certains rangs, avec une « raison interne », pendant que les utilisateurs voient un « affichage aléatoire ». C'est une tromperie des participants qui ont payé : risque pénal, perte de confiance immédiate si c'est découvert, et incompatible avec tout partenaire de paiement.
+`admin_tirage_config.dart` et `tirage_service.dart` décrivaient une « sélection admin discrète » qui fixait les gagnants de certains rangs, avec une « raison interne », pendant que les utilisateurs voyaient un « affichage aléatoire ». Tromper des participants qui ont payé fait perdre leur confiance dès que c'est découvert, et aucun partenaire de paiement ne l'accepte.
 
-**À faire :** supprimer ces écrans, ces actions et les colonnes associées. Remplacer par un **tirage vérifiable** (voir 4.5).
+**Décision retenue :** le responsable garde la possibilité d'imposer un gagnant ou un tour, mais **à découvert** :
 
-### 2.3 Cagnottes à tickets = loterie
+- tontine `tirage_ordre` : les tours attribués sont publiés à tous les membres au lancement du tirage, avec l'empreinte, et ne changent plus ;
+- cagnotte à gagnants : les rangs attribués sont affichés à tous, avec le nom, avant la première participation, puis verrouillés ;
+- tout le reste est tiré au sort de façon vérifiable (voir 4.5), et l'application indique pour chaque résultat « attribué par le responsable » ou « tiré au sort ».
 
-Payer pour obtenir des tickets (1 ticket par tranche de 250 FCFA) et gagner des lots par tirage au sort, c'est la définition d'une loterie. Au Burkina Faso, les jeux de hasard sont un secteur réglementé où la LONAB occupe une position d'exclusivité. À faire confirmer par un juriste, mais en l'état ce module expose à de lourdes sanctions.
+### 2.3 Cagnottes à tickets
 
-À ne pas confondre avec la **tontine à tirage entre membres** : chaque membre cotise et chaque membre finit par recevoir la cagnotte une fois, seul l'ordre est tiré au sort. Ce mécanisme d'épargne rotative est le cœur du produit et reste acceptable.
+Payer pour obtenir des tickets et gagner une part de la somme par tirage au sort relève d'un secteur réglementé dans beaucoup de pays. Le porteur du projet a choisi de **garder le module** et de l'améliorer ; le cadre applicable est à vérifier pays par pays avant l'ouverture au public.
 
-**À faire :** retirer le module « cagnottes à tickets » du SaaS. Garder la « cagnotte solidaire » (collecte pour une cause, sans tirage).
+Améliorations apportées par rapport à l'ancienne version : durée limitée avec compte à rebours, prix du ticket et répartition des gains affichés dès la création, commission de l'organisation plafonnée à 30 % et visible de tous, rangs attribués publics, tirage vérifiable, remise de chaque gain enregistrée puis confirmée par le gagnant, montants en entiers.
+
+La **cagnotte solidaire** (collecte pour une personne, sans tirage) existe à côté, avec remise des fonds confirmée par le bénéficiaire.
 
 ### 2.4 Le portefeuille détient de l'argent
 
@@ -156,10 +160,10 @@ Revenus complémentaires possibles : frais de service sur les cotisations payée
 
 | Garder et fiabiliser | Retirer | Ajouter |
 |---|---|---|
-| Tontine tour de rôle | Cagnottes à tickets et tirage de lots | Organisations, rôles, invitations |
-| Tontine avec ordre tiré au sort entre membres | Tirage hybride et sélection admin | Cycles, échéancier, retards, pénalités |
-| Épargne de groupe avec objectif | Portefeuille avec solde | Enregistrement des cotisations et reçus |
-| Cagnotte solidaire (sans tirage) | Forum et chat maquettés (reporter) | Relances SMS, WhatsApp, push |
+| Tontine tour de rôle | Sélection admin discrète (remplacée par l'attribution publique) | Organisations, rôles, invitations |
+| Tontine avec ordre tiré au sort entre membres | Portefeuille avec solde | Cycles, échéancier, retards, pénalités |
+| Épargne de groupe avec objectif | Forum et chat maquettés (reporter) | Enregistrement des cotisations et reçus |
+| Cagnotte solidaire et cagnotte à gagnants, à durée limitée | | Relances SMS, WhatsApp, push |
 | Épargne personnelle (après branchement) | Firebase Auth et Firestore | Back-office web, exports, audit |
 | Charte graphique verte et or | `create_tontine_screen.dart` v1 | Abonnements et facturation |
 
@@ -221,14 +225,17 @@ Un utilisateur est identifié par son numéro de téléphone et peut appartenir 
 | `organizations` | `name`, `slug`, `plan`, `subscription_status`, `currency` (XOF), `timezone` (Africa/Ouagadougou), `settings` json |
 | `users` | `phone` (unique, format E.164), `name`, `email` nullable, `phone_verified_at`, `locale` |
 | `organization_user` | `role` (owner, admin, tresorier, membre), `status` |
-| `tontines` | `type` (rotative, tirage_ordre, epargne_groupe, cagnotte_solidaire, epargne_perso), `name`, `amount` (entier FCFA), `frequency`, `starts_on`, `cycles_count`, `max_members`, `penalty_rules` json, `status`. Nommée `tontines` et non `groups`, mot réservé de MySQL 8 |
+| `tontines` | `type` (rotative, tirage_ordre, epargne_groupe, epargne_perso), `name`, `amount` (entier FCFA), `frequency`, `starts_on`, `cycles_count`, `max_members`, `penalty_rules` json, `status`. Nommée `tontines` et non `groups`, mot réservé de MySQL 8 |
 | `tontine_members` | `user_id`, `shares` (nombre de « mains »), `position` (ordre de passage), `status` |
 | `invitations` | `code`, `token`, `expires_at`, `max_uses`, `used_count` |
 | `cycles` | `number`, `due_on`, `beneficiary_member_id`, `status` (a_venir, en_cours, clos) |
 | `contributions` | `cycle_id`, `member_id`, `amount_due`, `amount_paid`, `paid_at`, `method` (cash, orange_money, moov_money), `reference`, `proof_path`, `recorded_by`, `confirmed_by_member_at` |
 | `payouts` | `cycle_id`, `member_id`, `amount`, `method`, `reference`, `status` |
 | `penalties` | `contribution_id`, `amount`, `reason`, `waived_by` |
-| `draws` | `cycle_id` ou `group_id`, `seed_hash`, `seed` (révélé après), `eligible_snapshot` json, `result` json, `drawn_at` |
+| `draws` | `tontine_id`, `seed_hash`, `seed` (révélé après), `slots` json (parts tirées), `designations` json (tours attribués), `result` json, `reveal_after`, `revealed_at` |
+| `cagnottes` | `mode` (solidaire, gagnants), `duration`, `opens_at`, `ends_at`, `status`, `min_amount`, bénéficiaire (membre ou nom), remise des fonds ; pour le mode gagnants : `ticket_price`, `winners_count`, `prize_split` json, `fee_percent`, `designations` json, `draw_seed` chiffrée, `draw_seed_hash`, `draw_tickets` json |
+| `cagnotte_contributions` | `user_id`, `amount`, `tickets`, `method`, `reference`, `recorded_by`, `confirmed_at` |
+| `cagnotte_winners` | `rank`, `user_id`, `prize_amount`, `designated`, remise (`paid_at`, `paid_method`, `paid_reference`), `confirmed_at` |
 | `payments` | `provider`, `provider_ref`, `idempotency_key`, `amount`, `status`, `payload` json |
 | `ledger_entries` | `account`, `debit`, `credit`, `payable_type`, `payable_id` (écritures immuables) |
 | `notifications` | table native Laravel |
@@ -237,14 +244,16 @@ Un utilisateur est identifié par son numéro de téléphone et peut appartenir 
 
 Règles : montants en **entiers**, horodatages en UTC, aucune suppression physique des données financières (annulation par écriture inverse).
 
-### 4.5 Tirage vérifiable (remplace le tirage hybride)
+### 4.5 Tirage vérifiable, avec attributions publiques
 
-1. À l'ouverture du tirage, le serveur génère une graine aléatoire (`random_bytes(32)`), enregistre et **publie son empreinte** `sha256(graine)` à tous les membres.
-2. La liste des membres éligibles est figée et publiée (ceux qui n'ont pas encore reçu la cagnotte).
-3. À l'heure prévue, la graine est révélée. Le rang de chaque membre est calculé de façon déterministe : tri des membres par `hash(graine + id_membre)`.
-4. N'importe quel membre peut recalculer le résultat dans l'app (« Vérifier ce tirage »).
+1. Le responsable peut attribuer lui-même des tours (tontine) ou des rangs (cagnotte). Ces attributions sont publiées à tous avant que quiconque paie (cagnotte) ou au lancement du tirage (tontine), puis verrouillées.
+2. Au lancement, le serveur génère une graine aléatoire (`random_bytes(32)`) et **publie son empreinte** `sha256(graine)` avec la liste figée de ce qui est tiré : parts `12#1` (tontine) ou tickets `u12#3` (cagnotte).
+3. Après la date annoncée, n'importe quel membre révèle la graine.
+   - Tontine : les parts sont triées par `sha256(graine + "|" + part)` puis placées dans les tours non attribués, du premier au dernier.
+   - Cagnotte : les tickets des membres qui ont un rang attribué sont écartés, les autres sont triés par `sha256(graine + "|" + ticket)` ; chaque membre gagne au plus une fois, dans l'ordre de son premier ticket, pour les rangs non attribués.
+4. Le téléphone de chaque membre recalcule le résultat et affiche « Tirage vérifié » ou « Vérification échouée ».
 
-Personne, admin compris, ne peut influencer le résultat après la publication de l'empreinte, et c'est démontrable. C'est un argument commercial fort face aux tontines papier.
+Une fois l'empreinte publiée, personne, admin compris, ne peut changer la partie tirée au sort, et c'est démontrable. Les choix du responsable ne sont jamais cachés.
 
 ### 4.6 API v1 (esquisse)
 
@@ -271,9 +280,15 @@ POST   /api/v1/contributions/{c}/confirm           (confirmation membre)
 POST   /api/v1/contributions/{c}/pay               (paiement via agrégateur)
 POST   /api/v1/cycles/{cycle}/payouts
 
-POST   /api/v1/groups/{group}/draws                (publie l'empreinte)
-POST   /api/v1/draws/{draw}/reveal
-GET    /api/v1/draws/{draw}                        (données de vérification)
+POST   /api/v1/orgs/{org}/tontines/{t}/draw        (tours attribués + empreinte)
+POST   /api/v1/orgs/{org}/tontines/{t}/draw/reveal
+GET    /api/v1/orgs/{org}/tontines/{t}/draw        (données de vérification)
+
+GET    /api/v1/orgs/{org}/cagnottes
+POST   /api/v1/orgs/{org}/cagnottes                (mode solidaire ou gagnants)
+PUT    /api/v1/orgs/{org}/cagnottes/{c}/designations
+POST   /api/v1/orgs/{org}/cagnottes/{c}/draw       (tickets + empreinte)
+POST   /api/v1/orgs/{org}/cagnottes/{c}/draw/reveal
 
 GET    /api/v1/me/calendar
 GET    /api/v1/me/contributions
@@ -504,7 +519,8 @@ Ensuite : iOS, marque blanche, langues nationales, USSD, épargne personnelle, m
 - [ ] Cotisations : saisie, confirmation, retards, pénalités
 - [ ] Versements aux bénéficiaires
 - [ ] Journal d'audit sur toutes les écritures financières
-- [ ] Tirage vérifiable (empreinte, révélation, recalcul)
+- [x] Tirage vérifiable (empreinte, révélation, recalcul), avec tours attribués publics
+- [x] Cagnottes solidaires et à gagnants, durées flash, 7 jours, 30 jours ou libre
 
 ### Milestone 2 : mobile
 
@@ -515,9 +531,10 @@ Ensuite : iOS, marque blanche, langues nationales, USSD, épargne personnelle, m
 - [ ] Rejoindre un groupe par code et par lien (`app_links`)
 - [ ] Calendrier personnel des cotisations
 - [ ] Détail d'un cycle, confirmation de paiement, reçu
-- [ ] Écran « Vérifier ce tirage »
+- [x] Écran « Vérifier ce tirage » (tontines et cagnottes)
+- [x] Onglet Cagnottes : compte à rebours, tickets, gains, tirage, remises
 - [ ] Notifications push
-- [ ] Supprimer : cagnottes à tickets, tirage hybride, portefeuille, forum/chat maquettés, `create_tontine_screen.dart`, dépendances Firebase inutiles
+- [ ] Supprimer : sélection admin discrète, portefeuille, forum/chat maquettés, `create_tontine_screen.dart`, dépendances Firebase inutiles
 
 ### Milestone 3 : back-office
 
@@ -547,7 +564,7 @@ Ensuite : iOS, marque blanche, langues nationales, USSD, épargne personnelle, m
 ## 8. Décisions à trancher
 
 1. **Cible prioritaire** : organisations (recommandé) ou particuliers ?
-2. **Cagnottes à tickets** : suppression (recommandé) ou maintien après avis juridique ?
+2. **Cagnottes à tickets** : tranché, maintenues et améliorées, avec gagnants attribuables uniquement de façon publique.
 3. **Niveau de paiement au lancement** : registre seul (recommandé) ou collecte directe ?
 4. **Marque** : Lôgô BF ou Tontine BF, et nom de domaine.
 5. **Données existantes** : y a-t-il de vrais utilisateurs à migrer ?
@@ -562,6 +579,6 @@ Ensuite : iOS, marque blanche, langues nationales, USSD, épargne personnelle, m
 2. Écrire une commande Artisan `legacy:import` idempotente qui lit l'ancienne base et remplit les nouvelles tables, en conservant un `legacy_id`.
 3. Mots de passe : s'ils ont été stockés avec `password_hash()` (bcrypt), Laravel peut les vérifier tels quels. Sinon (md5, sha1, texte clair), ne pas les importer et basculer ces comptes sur l'OTP.
 4. Normaliser les numéros au format `+226XXXXXXXX`, fusionner les doublons.
-5. Ne pas importer les données de cagnottes à tickets ni les configurations de tirage hybride. Conserver une archive hors ligne si des sommes réelles sont en jeu.
+5. Ne pas importer les anciennes cagnottes ni les configurations de tirage discrètes (`tirage_config`). Conserver une archive hors ligne si des sommes réelles sont en jeu.
 6. Informer les utilisateurs existants avant la bascule (SMS), avec la date de fin de l'ancienne app.
 7. Couper les anciens scripts PHP une fois la migration vérifiée.

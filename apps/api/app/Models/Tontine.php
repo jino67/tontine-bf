@@ -83,6 +83,24 @@ class Tontine extends Model
             );
     }
 
+    /** Passe la tontine à « terminée » quand toutes les cotisations sont payées, et la rouvre sinon. */
+    public function refreshCompletion(): void
+    {
+        if ($this->status !== TontineStatus::Active && $this->status !== TontineStatus::Completed) {
+            return;
+        }
+
+        $unpaid = $this->contributions()
+            ->whereColumn('contributions.amount_paid', '<', 'contributions.amount_due')
+            ->exists();
+
+        $status = $unpaid ? TontineStatus::Active : TontineStatus::Completed;
+
+        if ($status !== $this->status) {
+            $this->update(['status' => $status]);
+        }
+    }
+
     public function hasMember(int $userId): bool
     {
         return $this->members()->where('user_id', $userId)->exists();

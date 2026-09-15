@@ -6,6 +6,9 @@ import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/ui.dart';
 import '../../core/widgets/woven_band.dart';
+import '../cagnottes/cagnotte.dart';
+import '../cagnottes/cagnotte_repository.dart';
+import '../cagnottes/cagnotte_tile.dart';
 import '../profile/help_screen.dart';
 import '../tontines/create_tontine_screen.dart';
 import '../tontines/models.dart';
@@ -13,9 +16,12 @@ import '../tontines/tontine_repository.dart';
 import '../tontines/tontine_tile.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, required this.repository, required this.onOpenTab});
+  const DashboardScreen({super.key, required this.repository, required this.cagnotteRepository, required this.onOpenTab});
 
   final TontineRepository repository;
+  final CagnotteRepository cagnotteRepository;
+
+  /// Onglets : 0 Accueil, 1 Tontines, 2 Cagnottes, 3 Échéances, 4 Profil.
   final ValueChanged<int> onOpenTab;
 
   @override
@@ -23,10 +29,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardData {
-  const _DashboardData(this.tontines, this.contributions);
+  const _DashboardData(this.tontines, this.contributions, this.cagnottes);
 
   final List<Tontine> tontines;
   final List<MyContribution> contributions;
+  final List<Cagnotte> cagnottes;
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
@@ -37,11 +44,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _future = _load();
     widget.repository.revision.addListener(_refresh);
+    widget.cagnotteRepository.revision.addListener(_refresh);
   }
 
   @override
   void dispose() {
     widget.repository.revision.removeListener(_refresh);
+    widget.cagnotteRepository.revision.removeListener(_refresh);
     super.dispose();
   }
 
@@ -49,7 +58,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Une requête après l'autre : le serveur de développement les traite une par une.
     final contributions = await widget.repository.myContributions();
     final tontines = await widget.repository.list();
-    return _DashboardData(tontines, contributions);
+    final cagnottes = await widget.cagnotteRepository.list();
+    return _DashboardData(tontines, contributions, cagnottes);
   }
 
   Future<void> _refresh() async {
@@ -87,16 +97,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _Header(
                     organizationName: organization.name,
                     userName: session.user?.name,
-                    onProfile: () => widget.onOpenTab(3),
+                    onProfile: () => widget.onOpenTab(4),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _NextPaymentHero(contributions: data.contributions, onSchedule: () => widget.onOpenTab(2)),
+                    child: _NextPaymentHero(contributions: data.contributions, onSchedule: () => widget.onOpenTab(3)),
                   ),
                   if (lateCount > 1)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                      child: _LateNotice(count: lateCount, onTap: () => widget.onOpenTab(2)),
+                      child: _LateNotice(count: lateCount, onTap: () => widget.onOpenTab(3)),
                     ),
                   if (organization.role.canRecordPayments) _TreasurerSummary(tontines: data.tontines),
                   SectionTitle(
@@ -116,6 +126,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: TontineTile(tontine: tontine, repository: widget.repository),
                       ),
+                  if (data.cagnottes.any((cagnotte) => cagnotte.isOpen)) ...[
+                    SectionTitle(
+                      'Cagnottes ouvertes',
+                      trailing: TextButton(onPressed: () => widget.onOpenTab(2), child: const Text('Tout voir')),
+                    ),
+                    for (final cagnotte in data.cagnottes.where((cagnotte) => cagnotte.isOpen).take(2))
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: CagnotteTile(cagnotte: cagnotte, repository: widget.cagnotteRepository),
+                      ),
+                  ],
                   const SectionTitle('Bon à savoir'),
                   const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: _TipOfTheDay()),
                 ],

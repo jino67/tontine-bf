@@ -44,6 +44,8 @@ class ContributionController extends Controller
             'recorded_by' => $paid ? $request->user()->id : null,
         ]);
 
+        $tontine->refreshCompletion();
+
         return ContributionResource::make($contribution->load('member.user'));
     }
 

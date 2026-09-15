@@ -36,3 +36,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.png
+    # Polices embarquées : google_fonts les trouve par leur nom de fichier, sans téléchargement.
+    - assets/google_fonts/

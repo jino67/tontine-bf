@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\Api\AcceptInvitationController;
 use App\Http\Controllers\Api\Auth\OtpController;
+use App\Http\Controllers\Api\CagnotteContributionController;
+use App\Http\Controllers\Api\CagnotteController;
+use App\Http\Controllers\Api\CagnotteDrawController;
+use App\Http\Controllers\Api\CagnotteHandoverController;
+use App\Http\Controllers\Api\CagnotteWinnerController;
 use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\CycleController;
 use App\Http\Controllers\Api\DrawController;
@@ -32,7 +37,7 @@ Route::prefix('v1')->group(function () {
         Route::post('invitations/{code}/accept', AcceptInvitationController::class);
 
         // scopeBindings : chaque ressource imbriquée est cherchée dans son parent,
-        // une tontine d'une autre organisation répond donc 404.
+        // une tontine ou une cagnotte d'une autre organisation répond donc 404.
         Route::prefix('orgs/{organization}')->middleware('org.member')->scopeBindings()->group(function () {
             Route::get('/', [OrganizationController::class, 'show']);
             Route::get('members', [MemberController::class, 'index']);
@@ -53,6 +58,21 @@ Route::prefix('v1')->group(function () {
             Route::get('tontines/{tontine}/draw', [DrawController::class, 'show']);
             Route::post('tontines/{tontine}/draw', [DrawController::class, 'store']);
             Route::post('tontines/{tontine}/draw/reveal', [DrawController::class, 'reveal']);
+
+            Route::get('cagnottes', [CagnotteController::class, 'index']);
+            Route::post('cagnottes', [CagnotteController::class, 'store']);
+            Route::get('cagnottes/{cagnotte}', [CagnotteController::class, 'show']);
+            Route::post('cagnottes/{cagnotte}/close', [CagnotteController::class, 'close']);
+            Route::post('cagnottes/{cagnotte}/contributions', [CagnotteContributionController::class, 'store']);
+            Route::put('cagnottes/{cagnotte}/contributions/{contribution}', [CagnotteContributionController::class, 'update']);
+            Route::post('cagnottes/{cagnotte}/contributions/{contribution}/confirm', [CagnotteContributionController::class, 'confirm']);
+            Route::post('cagnottes/{cagnotte}/handover', [CagnotteHandoverController::class, 'store']);
+            Route::post('cagnottes/{cagnotte}/handover/confirm', [CagnotteHandoverController::class, 'confirm']);
+            Route::put('cagnottes/{cagnotte}/designations', [CagnotteController::class, 'designations']);
+            Route::post('cagnottes/{cagnotte}/draw', [CagnotteDrawController::class, 'store']);
+            Route::post('cagnottes/{cagnotte}/draw/reveal', [CagnotteDrawController::class, 'reveal']);
+            Route::post('cagnottes/{cagnotte}/winners/{winner}/payout', [CagnotteWinnerController::class, 'payout']);
+            Route::post('cagnottes/{cagnotte}/winners/{winner}/confirm', [CagnotteWinnerController::class, 'confirm']);
         });
     });
 });

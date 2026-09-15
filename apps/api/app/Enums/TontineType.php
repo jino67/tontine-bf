@@ -2,12 +2,12 @@
 
 namespace App\Enums;
 
+/** Les collectes solidaires sont gérées à part, par les cagnottes. */
 enum TontineType: string
 {
     case Rotative = 'rotative';
     case DrawOrder = 'tirage_ordre';
     case GroupSavings = 'epargne_groupe';
-    case SolidarityPot = 'cagnotte_solidaire';
     case PersonalSavings = 'epargne_perso';
 
     /** Chaque part reçoit la cagnotte une fois : un cycle par part. */

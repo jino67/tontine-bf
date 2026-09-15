@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../core/session/session_scope.dart';
+import '../features/cagnottes/cagnotte_repository.dart';
+import '../features/cagnottes/cagnottes_screen.dart';
 import '../features/home/dashboard_screen.dart';
 import '../features/home/schedule_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/tontines/tontine_repository.dart';
 import '../features/tontines/tontines_screen.dart';
 
-/// Navigation principale d'une organisation : Accueil, Tontines, Échéances, Profil.
+/// Navigation principale d'une organisation : Accueil, Tontines, Cagnottes, Échéances, Profil.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -16,7 +18,8 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  TontineRepository? _repository;
+  TontineRepository? _tontines;
+  CagnotteRepository? _cagnottes;
   int _index = 0;
 
   /// Les onglets ne se chargent qu'à leur première ouverture.
@@ -26,7 +29,9 @@ class _HomeShellState extends State<HomeShell> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final session = SessionScope.read(context);
-    _repository ??= TontineRepository(session.api, session.currentOrganization!.id);
+    final organizationId = session.currentOrganization!.id;
+    _tontines ??= TontineRepository(session.api, organizationId);
+    _cagnottes ??= CagnotteRepository(session.api, organizationId);
   }
 
   void _select(int index) => setState(() {
@@ -36,11 +41,11 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final repository = _repository!;
     final pages = [
-      DashboardScreen(repository: repository, onOpenTab: _select),
-      TontinesScreen(repository: repository),
-      ScheduleScreen(repository: repository),
+      DashboardScreen(repository: _tontines!, cagnotteRepository: _cagnottes!, onOpenTab: _select),
+      TontinesScreen(repository: _tontines!),
+      CagnottesScreen(repository: _cagnottes!),
+      ScheduleScreen(repository: _tontines!),
       const ProfileScreen(),
     ];
 
@@ -57,6 +62,11 @@ class _HomeShellState extends State<HomeShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Accueil'),
           NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups_rounded), label: 'Tontines'),
+          NavigationDestination(
+            icon: Icon(Icons.volunteer_activism_outlined),
+            selectedIcon: Icon(Icons.volunteer_activism_rounded),
+            label: 'Cagnottes',
+          ),
           NavigationDestination(
             icon: Icon(Icons.event_note_outlined),
             selectedIcon: Icon(Icons.event_note_rounded),

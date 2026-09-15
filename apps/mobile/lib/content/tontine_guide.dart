@@ -38,9 +38,9 @@ const tontineGuides = [
     summary: 'Même fonctionnement que le tour de rôle, mais l’ordre de passage est tiré au sort.',
     steps: [
       'Le responsable démarre la tontine quand tous les membres ont rejoint.',
-      'Il lance le tirage : une empreinte est publiée et une date de révélation est annoncée.',
-      'Après cette date, n’importe quel membre révèle le tirage.',
-      'Chaque téléphone vérifie que le résultat correspond à l’empreinte publiée.',
+      'S’il le souhaite, il attribue lui-même certains tours. Ces choix seront visibles par tous.',
+      'Il lance le tirage : les tours attribués et une empreinte sont publiés, avec une date de révélation.',
+      'Après cette date, n’importe quel membre révèle le tirage, et chaque téléphone vérifie le résultat.',
     ],
     example: 'Une coopérative de 12 productrices ne veut pas désigner qui passe en premier. '
         'Le tirage est lancé un vendredi et révélé le samedi à l’assemblée.',
@@ -56,17 +56,6 @@ const tontineGuides = [
     ],
     example: '25 membres versent 2 000 FCFA par mois pendant 10 mois pour acheter des semences en gros avant l’hivernage.',
     suitedFor: 'Les achats groupés, les fêtes de fin d’année, les projets d’association.',
-  ),
-  TontineGuide(
-    type: TontineType.solidarityPot,
-    summary: 'Une collecte pour soutenir une personne ou un projet précis.',
-    steps: [
-      'Le responsable décrit l’objectif et le montant suggéré.',
-      'Les membres cotisent pendant la durée prévue.',
-      'Le trésorier suit ce qui a été réuni et le remet à qui de droit.',
-    ],
-    example: 'Une association de quartier réunit une participation mensuelle pour les frais de scolarité de deux orphelins.',
-    suitedFor: 'Les coups durs, les événements familiaux, les actions de solidarité.',
   ),
   TontineGuide(
     type: TontineType.personalSavings,

@@ -32,6 +32,28 @@ void main() {
     expect(DrawVerifier.verify(revealedDraw(revealedSeed: 'autre-graine')), isFalse);
   });
 
+  test('place les parts tirées autour des tours attribués par le responsable', () {
+    // Vecteur PHP : DrawService::order puis DrawService::merge avec le tour 2 attribué à la part 3#1.
+    const drawnSlots = ['1#1', '1#2', '2#1', '4#1'];
+    const designations = [DrawDesignation(cycle: 2, slot: '3#1')];
+
+    expect(DrawVerifier.order(seed, drawnSlots), ['4#1', '2#1', '1#2', '1#1']);
+    expect(DrawVerifier.merge(designations, DrawVerifier.order(seed, drawnSlots), 5), serverOrder);
+
+    final draw = Draw(
+      id: 2,
+      seedHash: serverHash,
+      slots: drawnSlots,
+      designations: designations,
+      revealAfter: DateTime(2026, 9, 15),
+      revealedAt: DateTime(2026, 9, 16),
+      seed: seed,
+      order: serverOrder,
+    );
+    expect(DrawVerifier.verify(draw), isTrue);
+    expect(draw.designatedCycles, {2});
+  });
+
   test('refuse un ordre de passage modifié', () {
     expect(DrawVerifier.verify(revealedDraw(order: const ['1#1', '3#1', '2#1', '1#2', '4#1'])), isFalse);
   });

@@ -32,6 +32,20 @@ String capitalize(String text) => text.isEmpty ? text : text[0].toUpperCase() + 
 /// « 1 membre », « 3 membres ». En français, 0 prend le singulier.
 String countLabel(int count, String singular, String plural) => '$count ${count > 1 ? plural : singular}';
 
+/// « 1er », « 2e », « 3e ».
+String ordinal(int number) => number == 1 ? '1er' : '${number}e';
+
+/// 50 devient « 50 % », 6.6667 devient « 6,67 % ».
+String percentLabel(num value) => '${NumberFormat('#,##0.##', 'fr').format(value)} %';
+
+/// Compte à rebours : « 2 j 5 h » au-delà d'un jour, « 07:05:09 » ensuite.
+String countdownLabel(Duration remaining) {
+  final left = remaining.isNegative ? Duration.zero : remaining;
+  if (left.inDays >= 1) return '${left.inDays} j ${left.inHours % 24} h';
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${two(left.inHours)}:${two(left.inMinutes % 60)}:${two(left.inSeconds % 60)}';
+}
+
 /// Initiales affichées dans les pastilles de membres.
 String initials(String? name) {
   final words = (name ?? '').trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();

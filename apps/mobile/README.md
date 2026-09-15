@@ -34,7 +34,8 @@ flutter build apk --release --dart-define=API_URL=https://api.<domaine>/api/v1
 | `lib/features/auth` | Présentation, connexion par SMS, nom du membre |
 | `lib/features/organizations` | Choix de l'organisation, code d'invitation, membres et rôles |
 | `lib/features/home` | Accueil et échéancier personnel |
-| `lib/features/tontines` | Liste, création, détail, tours, paiements, tirage vérifiable |
+| `lib/features/tontines` | Liste, création, détail, tours, paiements, tirage vérifiable avec tours attribués |
+| `lib/features/cagnottes` | Cagnottes solidaires et à gagnants : compte à rebours, participations, tickets, gains, tirage vérifiable, remises |
 | `lib/features/profile` | Profil, aide, guide, confidentialité, à propos |
 
 Aucune donnée n'est inventée : tout ce qui concerne les tontines, les membres et les cotisations vient de l'API.
@@ -46,7 +47,7 @@ Aucune donnée n'est inventée : tout ce qui concerne les tontines, les membres 
 - **Textes, boutons, montants et codes** : Atkinson Hyperlegible, regular et gras, choisie pour sa lisibilité (0 et O, 1 et I bien distincts).
 - **Élément signature** : la bande tissée (`WovenBand`), une case par tour, inspirée des rayures du Faso Dan Fani.
 
-Les polices passent par `google_fonts` : elles sont téléchargées au premier lancement puis gardées en cache. Pour les embarquer dans l'APK (utile hors connexion), placer `YoungSerif-Regular.ttf`, `AtkinsonHyperlegible-Regular.ttf` et `AtkinsonHyperlegible-Bold.ttf` dans `assets/google_fonts/`, déclarer ce dossier dans `pubspec.yaml`, puis passer `GoogleFonts.config.allowRuntimeFetching` à `false` dans `main.dart`.
+Les polices sont **embarquées dans l'application** (`assets/google_fonts/`, 216 Ko au total) : elles s'affichent sans connexion dès le premier lancement. `google_fonts` les retrouve par leur nom de fichier et le téléchargement est désactivé dans `main.dart`. Pour ajouter une graisse, déposer le fichier au nom attendu (par exemple `AtkinsonHyperlegible-Italic.ttf`) dans ce dossier. Les licences SIL Open Font License sont incluses et visibles dans « À propos », « Licences des composants ».
 
 Pour obtenir du gras, utiliser `AppType.sans(bold: true)` et non `copyWith(fontWeight: ...)`, qui produirait un gras artificiel.
 
@@ -56,4 +57,4 @@ Pour obtenir du gras, utiliser `AppType.sans(bold: true)` et non `copyWith(fontW
 flutter analyze && flutter test
 ```
 
-Le test `draw_verifier_test.dart` vérifie que le téléphone recalcule le tirage exactement comme le serveur.
+Les tests `draw_verifier_test.dart` et `cagnotte_test.dart` vérifient, sur des valeurs calculées par l'API en PHP, que le téléphone retrouve exactement le même ordre de passage, les mêmes gagnants et les mêmes gains que le serveur.

@@ -5,11 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** Tirage vérifiable de l'ordre de passage d'une tontine « tirage_ordre ». */
+/**
+ * Tirage de l'ordre de passage d'une tontine « tirage_ordre ».
+ * Les tours attribués par le responsable (designations) sont publiés dès l'engagement, les autres sont tirés au sort.
+ */
 class Draw extends Model
 {
     protected $fillable = [
-        'organization_id', 'tontine_id', 'created_by', 'seed', 'seed_hash', 'slots', 'result', 'reveal_after', 'revealed_at',
+        'organization_id', 'tontine_id', 'created_by', 'seed', 'seed_hash', 'slots', 'designations', 'result',
+        'reveal_after', 'revealed_at',
     ];
 
     protected $hidden = ['seed'];
@@ -19,6 +23,7 @@ class Draw extends Model
         return [
             'seed' => 'encrypted',
             'slots' => 'array',
+            'designations' => 'array',
             'result' => 'array',
             'reveal_after' => 'datetime',
             'revealed_at' => 'datetime',

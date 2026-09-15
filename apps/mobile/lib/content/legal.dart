@@ -34,5 +34,8 @@ const aboutParagraphs = [
   'Tontine BF aide les associations, groupements et coopératives à tenir leurs tontines sans cahier : '
       'qui a cotisé, qui reçoit, qui est en retard.',
   'L’application ne détient pas d’argent. Elle enregistre ce que le trésorier reçoit et le fait confirmer par chaque membre.',
-  'Le tirage au sort de l’ordre de passage est vérifiable par tous : personne, pas même l’équipe de Tontine BF, ne peut en choisir le résultat.',
+  'Les tirages au sort sont vérifiables par tous : une fois l’empreinte publiée, personne, pas même l’équipe de Tontine BF, '
+      'ne peut en changer le résultat.',
+  'Quand un responsable attribue lui-même un tour ou un gain, ce choix est affiché à tous les membres avant qu’ils ne paient, '
+      'puis il ne peut plus être modifié.',
 ];

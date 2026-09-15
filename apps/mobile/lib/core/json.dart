@@ -8,6 +8,12 @@ int asInt(Object? value) => switch (value) {
 
 int? asIntOrNull(Object? value) => value == null ? null : asInt(value);
 
+double asDouble(Object? value) => switch (value) {
+      num() => value.toDouble(),
+      String() => double.tryParse(value) ?? 0,
+      _ => 0,
+    };
+
 String? asStringOrNull(Object? value) => value is String && value.isNotEmpty ? value : null;
 
 DateTime? asDate(Object? value) => value is String && value.isNotEmpty ? DateTime.tryParse(value) : null;

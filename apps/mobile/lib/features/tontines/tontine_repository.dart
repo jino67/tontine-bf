@@ -105,8 +105,14 @@ class TontineRepository {
     }
   }
 
-  Future<Draw> commitDraw(int tontineId, DateTime revealAfter) async {
-    final body = await _api.post('$_base/$tontineId/draw', {'reveal_after': revealAfter.toUtc().toIso8601String()});
+  /// [designations] associe un numéro de tour à l'identifiant du membre (tontine_member) qui le reçoit.
+  Future<Draw> commitDraw(int tontineId, DateTime revealAfter, {Map<int, int> designations = const {}}) async {
+    final body = await _api.post('$_base/$tontineId/draw', {
+      'reveal_after': revealAfter.toUtc().toIso8601String(),
+      'designations': [
+        for (final entry in designations.entries) {'cycle': entry.key, 'member_id': entry.value},
+      ],
+    });
     return _changed(Draw.fromJson(asMap(unwrap(body))));
   }
 

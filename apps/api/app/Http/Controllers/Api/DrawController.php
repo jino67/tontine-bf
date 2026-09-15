@@ -11,6 +11,7 @@ use App\Services\DrawService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class DrawController extends Controller
 {
@@ -23,17 +24,25 @@ class DrawController extends Controller
         return DrawResource::make($tontine->draw ?? abort(404, 'Aucun tirage pour cette tontine.'));
     }
 
+    /** Le responsable lance le tirage et peut attribuer lui-même certains tours, visibles de tous. */
     public function store(Request $request, Organization $organization, Tontine $tontine, DrawService $draws): JsonResponse
     {
         $this->ensureCanManage($request);
 
         $data = $request->validate([
             'reveal_after' => ['nullable', 'date', 'after_or_equal:now'],
+            'designations' => ['nullable', 'array', 'max:520'],
+            'designations.*.cycle' => ['required', 'integer', 'min:1', 'distinct'],
+            'designations.*.member_id' => [
+                'required',
+                'integer',
+                Rule::exists('tontine_members', 'id')->where('tontine_id', $tontine->id),
+            ],
         ]);
 
         $revealAfter = isset($data['reveal_after']) ? Carbon::parse($data['reveal_after']) : now()->addDay();
 
-        return DrawResource::make($draws->commit($tontine, $request->user(), $revealAfter))
+        return DrawResource::make($draws->commit($tontine, $request->user(), $revealAfter, $data['designations'] ?? []))
             ->response()
             ->setStatusCode(201);
     }
