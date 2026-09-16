@@ -28,7 +28,9 @@ robots.txt
 tontine-api/       l'application Laravel complète, avec son .env et sa base SQLite
 ```
 
-L'application est donc **à l'intérieur** du dossier web, puisqu'il n'y a pas de sous-domaine dont on choisirait le dossier racine. Elle est protégée par `tontine-api/.htaccess` qui refuse tout accès direct (`Require all denied`). C'est la vérification la plus importante après l'installation.
+C'est le même montage qu'amicalclinic et sunset-tour. L'application est **à l'intérieur** du dossier web, puisqu'il n'y a pas de sous-domaine dont on choisirait le dossier racine. Elle est protégée trois fois : le `.htaccess` racine refuse `tontine-api/` (`RewriteRule ^tontine-api/ - [F,L]`), il refuse aussi partout les fichiers `.env`, `.sqlite`, `.log` et `.zip`, et `tontine-api/.htaccess` refuse tout accès direct. C'est la vérification la plus importante après l'installation.
+
+Les deux fichiers de la racine, `index.php` et `.htaccess`, sont dans [`apps/api/deploy/lws/`](../apps/api/deploy/lws/). Ils remplacent ceux de `public/`, qui ne partent pas en ligne.
 
 ## 2. Installation par archive (sans SSH)
 
@@ -38,7 +40,7 @@ Construire l'archive depuis le poste de développement :
 cd apps/api && composer install --no-dev --optimize-autoloader
 ```
 
-Puis reproduire la structure ci-dessus : le contenu de `public/` à la racine, le reste dans `tontine-api/`, en adaptant dans `index.php` les deux chemins `__DIR__.'/../'` en `__DIR__.'/tontine-api/'`. Créer la base avec `php artisan migrate --force` avant de compresser, pour n'avoir rien à lancer sur le serveur.
+Puis reproduire la structure ci-dessus : à la racine, `favicon.ico` et `robots.txt` de `public/` avec `index.php` et `.htaccess` de `apps/api/deploy/lws/` ; le reste du projet dans `tontine-api/`. Créer la base avec `php artisan migrate --force` avant de compresser, pour n'avoir rien à lancer sur le serveur.
 
 Sur le panneau LWS : ouvrir `htdocs/<domaine>`, bouton « Charger » pour envoyer l'archive, la sélectionner, bouton « Extraire », puis supprimer l'archive.
 
@@ -51,6 +53,14 @@ Vérifier ensuite dans le navigateur :
 | `https://<domaine>/api/v1/orgs` | message « Unauthenticated » |
 
 Si une erreur 500 apparaît, donner les droits d'écriture (755, ou 775 si LWS l'exige) à `tontine-api/storage` et `tontine-api/database`.
+
+**Si la racine affiche la page LWS « Bravo ! Votre domaine a bien été créé » et `/up` une 404 LWS**, les fichiers ne sont pas en cause : le domaine ne pointe pas sur le serveur de l'hébergement. Comparer l'adresse du domaine avec celle d'un domaine qui fonctionne sur le même hébergement :
+
+```bash
+nslookup <domaine>
+```
+
+Si les adresses diffèrent, dans le panneau LWS du domaine : faire pointer les enregistrements A de `@` et `www` sur l'adresse de l'hébergement, et rattacher le domaine à l'hébergement sur le dossier `htdocs/<domaine>` (comme les autres domaines déjà en ligne). La propagation DNS prend de quelques minutes à quelques heures.
 
 ## 3. Fichier `.env` de production
 
