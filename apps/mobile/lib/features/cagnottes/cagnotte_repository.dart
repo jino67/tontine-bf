@@ -19,7 +19,6 @@ class CagnotteDraft {
     this.ticketPrice,
     this.winnersCount,
     this.feePercent,
-    this.designations = const {},
   });
 
   final CagnotteMode mode;
@@ -34,9 +33,6 @@ class CagnotteDraft {
   final int? ticketPrice;
   final int? winnersCount;
   final int? feePercent;
-
-  /// Rang attribué, puis identifiant du membre.
-  final Map<int, int> designations;
 
   Map<String, dynamic> toJson() => {
         'mode': mode.apiValue,
@@ -54,13 +50,8 @@ class CagnotteDraft {
           'ticket_price': ticketPrice,
           'winners_count': winnersCount,
           'fee_percent': feePercent ?? 0,
-          'designations': designationsJson(designations),
         },
       };
-
-  static List<Map<String, int>> designationsJson(Map<int, int> designations) => [
-        for (final entry in designations.entries) {'rank': entry.key, 'user_id': entry.value},
-      ];
 }
 
 /// Cagnottes de l'organisation courante.
@@ -147,10 +138,6 @@ class CagnotteRepository {
       }));
 
   Future<Cagnotte> confirmHandover(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/handover/confirm'));
-
-  Future<Cagnotte> setDesignations(int cagnotteId, Map<int, int> designations) async => _changed(
-        await _api.put('$_base/$cagnotteId/designations', {'designations': CagnotteDraft.designationsJson(designations)}),
-      );
 
   Future<Cagnotte> commitDraw(int cagnotteId, DateTime revealAfter) async =>
       _changed(await _api.post('$_base/$cagnotteId/draw', {'reveal_after': revealAfter.toUtc().toIso8601String()}));

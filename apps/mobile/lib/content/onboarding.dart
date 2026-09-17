@@ -25,7 +25,7 @@ const onboardingPages = [
   OnboardingPage(
     title: 'Des tirages vérifiables par tous',
     body: "Ordre de passage et gagnants des cagnottes : chaque membre recalcule le résultat sur son téléphone. "
-        'Un tour ou un gain attribué par le responsable est affiché à tous, à l’avance.',
+        'Un tour attribué par le responsable est affiché à tous, à l’avance.',
     fills: [1, 1, 1, 1, 1, 1],
   ),
 ];

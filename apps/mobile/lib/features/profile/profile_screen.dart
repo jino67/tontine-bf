@@ -36,7 +36,7 @@ class ProfileScreen extends StatelessWidget {
     final confirmed = await confirmAction(
       context,
       title: 'Se déconnecter ?',
-      message: 'Vous devrez saisir un nouveau code reçu par SMS pour vous reconnecter.',
+      message: 'Vous devrez saisir un nouveau code de connexion pour vous reconnecter.',
       confirmLabel: 'Se déconnecter',
     );
     if (confirmed) await session.signOut();

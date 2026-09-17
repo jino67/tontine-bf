@@ -31,16 +31,26 @@ function actingAsUser(User $user): User
     return $user;
 }
 
-/** Remplace l'envoi des SMS et retourne un objet qui capture les codes par numéro. */
-function fakeOtpSender(): object
+/** Remplace l'envoi des codes et retourne un objet qui les capture par numéro, avec l'adresse e-mail visée. */
+function fakeOtpSender(string $channel = 'log'): object
 {
-    $sender = new class implements OtpSender
+    $sender = new class($channel) implements OtpSender
     {
         public array $codes = [];
 
-        public function send(string $phone, string $code): void
+        public array $emails = [];
+
+        public function __construct(private string $channelName) {}
+
+        public function channel(): string
+        {
+            return $this->channelName;
+        }
+
+        public function send(string $phone, string $code, ?string $email = null): void
         {
             $this->codes[$phone] = $code;
+            $this->emails[$phone] = $email;
         }
     };
 

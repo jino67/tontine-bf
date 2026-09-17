@@ -18,8 +18,9 @@ const helpTopics = [
     title: 'Connexion',
     questions: [
       HelpQuestion(
-        'Je ne reçois pas le code par SMS',
-        'Vérifiez que le numéro saisi est bien le vôtre, puis patientez une minute. '
+        'Je ne reçois pas le code de connexion',
+        'Le code arrive par e-mail, à l’adresse liée à votre numéro : regardez aussi dans les courriers indésirables. '
+            'Vérifiez que le numéro saisi est bien le vôtre, puis patientez une minute. '
             'Vous pouvez demander 3 codes par tranche de 10 minutes. Un code reste valable 10 minutes.',
       ),
       HelpQuestion(
@@ -83,8 +84,8 @@ const helpTopics = [
       ),
       HelpQuestion(
         'Le responsable peut-il choisir qui passe ou qui gagne ?',
-        'Oui, mais jamais en secret. Un tour attribué est publié à tous au lancement du tirage. Un gain attribué est affiché '
-            'avec le nom du membre avant la première participation, puis il ne peut plus changer. Tout le reste est tiré au sort.',
+        'Pour l’ordre de passage d’une tontine, oui, mais jamais en secret : un tour attribué est publié à tous au lancement '
+            'du tirage, et les autres tours sont tirés au sort. Les gagnants des cagnottes sont toujours tirés au sort.',
       ),
       HelpQuestion(
         'Qui peut révéler le tirage ?',

@@ -100,21 +100,16 @@ final class CagnottePrizeDraw
     }
 
     /**
-     * @param  array<int, array{rank: int, user_id: int}>  $designations  rangs attribués publiquement
-     * @return array<int, array{rank: int, user_id: int, designated: bool}>
+     * Tous les rangs sont tirés au sort : chaque membre gagne au plus une fois, dans l'ordre de son premier ticket.
+     *
+     * @param  array<int, string>  $tickets
+     * @return array<int, array{rank: int, user_id: int}>
      */
-    public static function pickWinners(string $seed, array $tickets, array $designations, int $winnersCount): array
+    public static function pickWinners(string $seed, array $tickets, int $winnersCount): array
     {
-        $designated = [];
-        foreach ($designations as $designation) {
-            $designated[(int) $designation['rank']] = (int) $designation['user_id'];
-        }
-
         $hashes = [];
         foreach ($tickets as $ticket) {
-            if (! in_array(self::userOf($ticket), $designated, true)) {
-                $hashes[$ticket] = hash('sha256', $seed.'|'.$ticket);
-            }
+            $hashes[$ticket] = hash('sha256', $seed.'|'.$ticket);
         }
 
         asort($hashes, SORT_STRING);
@@ -128,12 +123,8 @@ final class CagnottePrizeDraw
         }
 
         $winners = [];
-        for ($rank = 1; $rank <= $winnersCount; $rank++) {
-            if (isset($designated[$rank])) {
-                $winners[] = ['rank' => $rank, 'user_id' => $designated[$rank], 'designated' => true];
-            } elseif ($drawn !== []) {
-                $winners[] = ['rank' => $rank, 'user_id' => array_shift($drawn), 'designated' => false];
-            }
+        foreach (array_slice($drawn, 0, $winnersCount) as $index => $userId) {
+            $winners[] = ['rank' => $index + 1, 'user_id' => $userId];
         }
 
         return $winners;

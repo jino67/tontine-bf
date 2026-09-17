@@ -1,13 +1,12 @@
 import '../tontines/draw_verifier.dart';
 import 'cagnotte.dart';
 
-typedef PrizePick = ({int rank, int userId, bool designated});
+typedef PrizePick = ({int rank, int userId});
 
 /// Calculs des cagnottes à gagnants, identiques à App\Services\CagnottePrizeDraw côté API.
 ///
-/// Ticket « u12#3 » : 3e ticket du membre 12. Les tickets des membres qui ont déjà un rang attribué
-/// sont écartés, les autres sont triés par sha256(graine + "|" + ticket). Les membres sont pris dans
-/// l'ordre de leur premier ticket, une seule fois chacun, pour les rangs non attribués.
+/// Ticket « u12#3 » : 3e ticket du membre 12. Les tickets sont triés par sha256(graine + "|" + ticket),
+/// puis les membres sont pris dans l'ordre de leur premier ticket, une seule fois chacun.
 abstract final class PrizeDraw {
   static List<double> defaultSplit(int winners) => switch (winners) {
         <= 1 => [100],
@@ -29,24 +28,19 @@ abstract final class PrizeDraw {
 
   static int userOf(String ticket) => int.tryParse(ticket.split('#').first.substring(1)) ?? 0;
 
-  static List<PrizePick> pickWinners(String seed, List<String> tickets, Map<int, int> designations, int winnersCount) {
-    final designatedUsers = designations.values.toSet();
-    final eligible = tickets.where((ticket) => !designatedUsers.contains(userOf(ticket))).toList();
-    final hashes = {for (final ticket in eligible) ticket: DrawVerifier.sha256Hex('$seed|$ticket')};
-    eligible.sort((a, b) => hashes[a]!.compareTo(hashes[b]!));
+  static List<PrizePick> pickWinners(String seed, List<String> tickets, int winnersCount) {
+    final sorted = [...tickets];
+    final hashes = {for (final ticket in sorted) ticket: DrawVerifier.sha256Hex('$seed|$ticket')};
+    sorted.sort((a, b) => hashes[a]!.compareTo(hashes[b]!));
 
     final drawn = <int>[];
-    for (final ticket in eligible) {
+    for (final ticket in sorted) {
       final userId = userOf(ticket);
       if (!drawn.contains(userId)) drawn.add(userId);
     }
 
     return [
-      for (var rank = 1; rank <= winnersCount; rank++)
-        if (designations[rank] != null)
-          (rank: rank, userId: designations[rank]!, designated: true)
-        else if (drawn.isNotEmpty)
-          (rank: rank, userId: drawn.removeAt(0), designated: false),
+      for (var index = 0; index < drawn.length && index < winnersCount; index++) (rank: index + 1, userId: drawn[index]),
     ];
   }
 
@@ -56,13 +50,12 @@ abstract final class PrizeDraw {
     if (draw == null || !draw.isRevealed) return false;
     if (DrawVerifier.sha256Hex(draw.seed!) != draw.seedHash) return false;
 
-    final expected = pickWinners(draw.seed!, draw.tickets, cagnotte.designations, cagnotte.winnersCount ?? 0);
+    final expected = pickWinners(draw.seed!, draw.tickets, cagnotte.winnersCount ?? 0);
     final actual = [...cagnotte.winners]..sort((a, b) => a.rank.compareTo(b.rank));
     if (expected.length != actual.length) return false;
 
     for (var i = 0; i < expected.length; i++) {
-      final winner = actual[i];
-      if (expected[i] != (rank: winner.rank, userId: winner.user?.id ?? 0, designated: winner.designated)) return false;
+      if (expected[i] != (rank: actual[i].rank, userId: actual[i].user?.id ?? 0)) return false;
     }
     return true;
   }

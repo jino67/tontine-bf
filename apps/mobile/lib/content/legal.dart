@@ -12,7 +12,7 @@ const privacyDraftNotice = 'Résumé provisoire. La politique de confidentialit�
 const privacySections = [
   LegalSection('Ce que nous enregistrons', [
     'Votre numéro de téléphone, qui sert à vous connecter.',
-    'Votre nom et, si vous le donnez, votre adresse e-mail.',
+    'Votre nom et votre adresse e-mail, qui sert aussi à recevoir le code de connexion.',
     'Les organisations et tontines dont vous êtes membre, et les cotisations enregistrées à votre nom.',
   ]),
   LegalSection('Pourquoi', [

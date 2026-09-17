@@ -33,7 +33,7 @@ cp .env.example .env && php artisan key:generate && php artisan migrate
 php artisan test
 ```
 
-En local, les codes OTP ne sont pas envoyés par SMS : ils sont écrits dans `storage/logs/laravel.log`.
+En local, les codes de connexion ne sont pas envoyés : ils sont écrits dans `storage/logs/laravel.log` (`OTP_CHANNEL=log`).
 
 ## Démarrer l'app mobile
 

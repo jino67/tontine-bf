@@ -10,11 +10,17 @@ import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
+import 'auth_repository.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key, required this.phone});
+  const OtpScreen({super.key, required this.phone, this.email, this.delivery});
 
   final String phone;
+
+  /// Adresse saisie à la première connexion, renvoyée si le membre redemande un code.
+  final String? email;
+
+  final OtpDelivery? delivery;
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -28,6 +34,7 @@ class _OtpScreenState extends State<OtpScreen> {
   int _secondsLeft = _resendDelay;
   bool _verifying = false;
   String? _error;
+  late OtpDelivery? _delivery = widget.delivery;
 
   @override
   void initState() {
@@ -78,14 +85,22 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> _resend() async {
     final session = SessionScope.read(context);
     try {
-      await session.auth.requestOtp(widget.phone);
+      final delivery = await session.auth.requestOtp(widget.phone, email: widget.email);
       if (!mounted) return;
+      setState(() => _delivery = delivery);
       _startCountdown();
       showDone(context, 'Nouveau code envoyé');
     } catch (error) {
       if (mounted) showError(context, error);
     }
   }
+
+  String get _instructions => switch (_delivery?.channel) {
+        'mail' => 'Saisissez le code à 6 chiffres envoyé par e-mail à ${_delivery?.destination ?? 'votre adresse'}. '
+            'S’il n’arrive pas, regardez dans les courriers indésirables.',
+        'test' => 'Numéro de test : saisissez le code de test.',
+        _ => 'Saisissez le code à 6 chiffres envoyé au ${phoneDisplay(widget.phone)}.',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +118,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 Text('Code de connexion', style: theme.textTheme.headlineMedium),
                 const SizedBox(height: 10),
                 Text(
-                  'Saisissez le code à 6 chiffres envoyé par SMS au ${phoneDisplay(widget.phone)}.',
+                  _instructions,
                   style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: 28),
@@ -122,7 +137,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     if (value.length == 6) _verify();
                   },
                 ),
-                if (kDebugMode) ...[
+                if (kDebugMode && (_delivery?.channel ?? 'log') == 'log') ...[
                   const SizedBox(height: 12),
                   Panel(
                     color: AppColors.indigoSoft,

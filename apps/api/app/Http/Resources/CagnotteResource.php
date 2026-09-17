@@ -3,7 +3,6 @@
 namespace App\Http\Resources;
 
 use App\Enums\CagnotteStatus;
-use App\Models\User;
 use App\Services\CagnottePrizeDraw;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -73,22 +72,12 @@ class CagnotteResource extends JsonResource
             $split,
         );
 
-        $designated = [];
-        foreach ($this->designations ?? [] as $designation) {
-            $designated[(int) $designation['rank']] = (int) $designation['user_id'];
-        }
-        $names = $designated === [] ? [] : User::whereIn('id', $designated)->pluck('name', 'id')->all();
-
         $prizes = [];
         foreach (array_values($split) as $index => $percent) {
-            $rank = $index + 1;
             $prizes[] = [
-                'rank' => $rank,
+                'rank' => $index + 1,
                 'percent' => $percent,
                 'amount' => $amounts[$index] ?? 0,
-                'designated_user' => isset($designated[$rank])
-                    ? ['id' => $designated[$rank], 'name' => $names[$designated[$rank]] ?? null]
-                    : null,
             ];
         }
 

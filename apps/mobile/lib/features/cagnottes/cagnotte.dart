@@ -81,28 +81,19 @@ class CagnotteHandover {
   final DateTime? confirmedAt;
 }
 
-/// Gain d'un rang, calculé sur la somme réunie. Un rang attribué affiche le nom du membre à tous.
+/// Gain d'un rang, calculé sur la somme réunie.
 class CagnottePrize {
-  const CagnottePrize({required this.rank, required this.percent, required this.amount, this.designatedUserId, this.designatedName});
+  const CagnottePrize({required this.rank, required this.percent, required this.amount});
 
-  factory CagnottePrize.fromJson(Map<String, dynamic> json) {
-    final designated = json['designated_user'];
-    return CagnottePrize(
-      rank: asInt(json['rank']),
-      percent: asDouble(json['percent']),
-      amount: asInt(json['amount']),
-      designatedUserId: designated is Map<String, dynamic> ? asInt(designated['id']) : null,
-      designatedName: designated is Map<String, dynamic> ? asStringOrNull(designated['name']) : null,
-    );
-  }
+  factory CagnottePrize.fromJson(Map<String, dynamic> json) => CagnottePrize(
+        rank: asInt(json['rank']),
+        percent: asDouble(json['percent']),
+        amount: asInt(json['amount']),
+      );
 
   final int rank;
   final double percent;
   final int amount;
-  final int? designatedUserId;
-  final String? designatedName;
-
-  bool get isDesignated => designatedUserId != null;
 }
 
 class CagnotteDraw {
@@ -164,7 +155,6 @@ class CagnotteWinner {
     required this.id,
     required this.rank,
     required this.prizeAmount,
-    required this.designated,
     this.user,
     this.paidAt,
     this.paidMethod,
@@ -177,7 +167,6 @@ class CagnotteWinner {
         id: asInt(json['id']),
         rank: asInt(json['rank']),
         prizeAmount: asInt(json['prize_amount']),
-        designated: json['designated'] == true,
         user: json['user'] is Map<String, dynamic> ? MemberUser.fromJson(json['user'] as Map<String, dynamic>) : null,
         paidAt: asDate(json['paid_at']),
         paidMethod: PaymentMethod.fromApi(json['paid_method']),
@@ -189,7 +178,6 @@ class CagnotteWinner {
   final int id;
   final int rank;
   final int prizeAmount;
-  final bool designated;
   final MemberUser? user;
   final DateTime? paidAt;
   final PaymentMethod? paidMethod;
@@ -347,12 +335,6 @@ class Cagnotte {
   bool get isOpen => status == CagnotteStatus.open;
 
   int get participationsCount => contributionsCount ?? contributions.length;
-
-  /// Rangs attribués par le responsable : rang, puis identifiant du membre.
-  Map<int, int> get designations => {
-        for (final prize in prizes)
-          if (prize.designatedUserId != null) prize.rank: prize.designatedUserId!,
-      };
 
   /// Les participations ne se modifient plus une fois les fonds remis ou le tirage lancé.
   bool get isLocked => status == CagnotteStatus.handedOver || draw != null;

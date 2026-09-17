@@ -12,7 +12,7 @@ void main() {
   const seedHash = '99b4cab3cd90eb6bc08db0c198648101f17db2222bf729eb00d4509ef14494f0';
   const tickets = ['u5#1', 'u5#2', 'u7#1', 'u7#2', 'u7#3', 'u9#1', 'u11#1', 'u11#2'];
 
-  Map<String, dynamic> revealedCagnotte({int secondWinner = 9}) => {
+  Map<String, dynamic> revealedCagnotte({int secondWinner = 11}) => {
         'id': 4,
         'organization_id': 1,
         'mode': 'gagnants',
@@ -30,9 +30,9 @@ void main() {
         'fee_percent': 10,
         'tickets_count': 8,
         'prizes': [
-          {'rank': 1, 'percent': 50, 'amount': 788, 'designated_user': null},
-          {'rank': 2, 'percent': 30, 'amount': 472, 'designated_user': {'id': 9, 'name': 'Binta'}},
-          {'rank': 3, 'percent': 20.0, 'amount': 315, 'designated_user': null},
+          {'rank': 1, 'percent': 50, 'amount': 788},
+          {'rank': 2, 'percent': 30, 'amount': 472},
+          {'rank': 3, 'percent': 20.0, 'amount': 315},
         ],
         'draw': {
           'seed_hash': seedHash,
@@ -42,23 +42,20 @@ void main() {
           'seed': seed,
         },
         'winners': [
-          {'id': 1, 'rank': 1, 'user': {'id': 7, 'name': 'Awa', 'phone': '+22670000007'}, 'prize_amount': 788, 'designated': false},
-          {'id': 2, 'rank': 2, 'user': {'id': secondWinner, 'name': 'Binta', 'phone': '+22670000009'}, 'prize_amount': 472, 'designated': true},
-          {'id': 3, 'rank': 3, 'user': {'id': 11, 'name': 'Cheick', 'phone': '+22670000011'}, 'prize_amount': 315, 'designated': false},
+          {'id': 1, 'rank': 1, 'user': {'id': 7, 'name': 'Awa', 'phone': '+22670000007'}, 'prize_amount': 788},
+          {'id': 2, 'rank': 2, 'user': {'id': secondWinner, 'name': 'Cheick', 'phone': '+22670000011'}, 'prize_amount': 472},
+          {'id': 3, 'rank': 3, 'user': {'id': 5, 'name': 'Djénéba', 'phone': '+22670000005'}, 'prize_amount': 315},
         ],
       };
 
-  test('retrouve les gagnants tirés par le serveur, avec ou sans rang attribué', () {
-    expect(PrizeDraw.pickWinners(seed, tickets, const {}, 3), [
-      (rank: 1, userId: 7, designated: false),
-      (rank: 2, userId: 11, designated: false),
-      (rank: 3, userId: 5, designated: false),
+  test('retrouve les gagnants tirés au sort par le serveur', () {
+    expect(PrizeDraw.pickWinners(seed, tickets, 3), [
+      (rank: 1, userId: 7),
+      (rank: 2, userId: 11),
+      (rank: 3, userId: 5),
     ]);
-    expect(PrizeDraw.pickWinners(seed, tickets, const {2: 9}, 3), [
-      (rank: 1, userId: 7, designated: false),
-      (rank: 2, userId: 9, designated: true),
-      (rank: 3, userId: 11, designated: false),
-    ]);
+    expect(PrizeDraw.pickWinners(seed, tickets, 2), [(rank: 1, userId: 7), (rank: 2, userId: 11)]);
+    expect(PrizeDraw.pickWinners(seed, tickets, 6), hasLength(4));
   });
 
   test('calcule tickets, commission et gains comme le serveur', () {
@@ -74,11 +71,10 @@ void main() {
 
     expect(cagnotte.isPrize, isTrue);
     expect(cagnotte.status, CagnotteStatus.drawn);
-    expect(cagnotte.designations, {2: 9});
     expect(cagnotte.prizes.first.percent, 50.0);
     expect(cagnotte.isLocked, isTrue);
     expect(PrizeDraw.verify(cagnotte), isTrue);
-    expect(PrizeDraw.verify(Cagnotte.fromJson(revealedCagnotte(secondWinner: 5))), isFalse);
+    expect(PrizeDraw.verify(Cagnotte.fromJson(revealedCagnotte(secondWinner: 9))), isFalse);
   });
 
   test('part des secondes restantes du serveur pour le compte à rebours', () {

@@ -63,8 +63,6 @@ return [
         'designations' => 'tours attribués',
         'designations.*.cycle' => 'tour attribué',
         'designations.*.member_id' => 'membre désigné',
-        'designations.*.rank' => 'rang attribué',
-        'designations.*.user_id' => 'gagnant désigné',
         'device_name' => "nom de l'appareil",
         'duration' => 'durée',
         'email' => 'adresse e-mail',

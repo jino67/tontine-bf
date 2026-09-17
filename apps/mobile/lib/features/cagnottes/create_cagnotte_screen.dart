@@ -39,7 +39,6 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
   bool _beneficiaryIsMember = true;
   MemberUser? _beneficiary;
   int _winnersCount = 3;
-  final Map<int, MemberUser> _designations = {};
   List<MemberUser>? _members;
   bool _saving = false;
   Map<String, String> _serverErrors = const {};
@@ -70,18 +69,7 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
     if (member != null) setState(() => _beneficiary = member);
   }
 
-  Future<void> _chooseDesignation(int rank) async {
-    final members = await _loadMembers();
-    if (members == null || !mounted) return;
-    final taken = {for (final entry in _designations.entries) if (entry.key != rank) entry.value.id};
-    final member = await pickMember(context, members, title: '${capitalize(ordinal(rank))} gain', exclude: taken);
-    if (member != null) setState(() => _designations[rank] = member);
-  }
-
-  void _setWinners(int count) => setState(() {
-        _winnersCount = count.clamp(1, 10);
-        _designations.removeWhere((rank, _) => rank > _winnersCount);
-      });
+  void _setWinners(int count) => setState(() => _winnersCount = count.clamp(1, 10));
 
   Future<void> _pickEndsAt() async {
     final today = DateUtils.dateOnly(DateTime.now());
@@ -152,7 +140,6 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
           ticketPrice: int.tryParse(_ticketPrice.text),
           winnersCount: _winnersCount,
           feePercent: int.tryParse(_fee.text),
-          designations: {for (final entry in _designations.entries) entry.key: entry.value.id},
         ),
       );
       navigator.pushReplacement(
@@ -166,7 +153,7 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
       });
       if (error.fieldErrors.isEmpty) {
         showError(context, error);
-      } else if (_serverErrors.keys.any((key) => key.startsWith('designations') || key == 'prize_split')) {
+      } else if (_serverErrors.containsKey('prize_split')) {
         showError(context, error);
       }
     }
@@ -383,13 +370,23 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
         const SizedBox(height: 18),
         Text('Répartition des gains', style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
-        Text(designationRule, style: theme.textTheme.bodySmall),
+        Text('Tous les gagnants sont tirés au sort à la clôture.', style: theme.textTheme.bodySmall),
         const SizedBox(height: 10),
-        RankDesignationsEditor(
-          split: PrizeDraw.defaultSplit(_winnersCount),
-          designations: _designations,
-          onChoose: _chooseDesignation,
-          onClear: (rank) => setState(() => _designations.remove(rank)),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (final (index, percent) in PrizeDraw.defaultSplit(_winnersCount).indexed) ...[
+                if (index > 0) const Divider(indent: 64),
+                ListTile(
+                  contentPadding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+                  leading: RankBadge(rank: index + 1),
+                  title: Text('${capitalize(ordinal(index + 1))} gain'),
+                  trailing: Text(percentLabel(percent), style: AppType.sans(size: 16, bold: true, tabular: true)),
+                ),
+              ],
+            ],
+          ),
         ),
       ];
 }

@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
-/** Gagnant d'une cagnotte : tiré au sort ou attribué publiquement par le responsable (designated). */
+/** Gagnant d'une cagnotte à gagnants, tiré au sort. La colonne designated n'est plus utilisée. */
 class CagnotteWinner extends Model
 {
     protected $fillable = [
-        'organization_id', 'cagnotte_id', 'rank', 'user_id', 'prize_amount', 'designated',
+        'organization_id', 'cagnotte_id', 'rank', 'user_id', 'prize_amount',
         'paid_at', 'paid_method', 'paid_reference', 'paid_by', 'confirmed_at',
     ];
 
@@ -21,7 +21,6 @@ class CagnotteWinner extends Model
             'rank' => 'integer',
             'user_id' => 'integer',
             'prize_amount' => 'integer',
-            'designated' => 'boolean',
             'paid_at' => 'datetime',
             'paid_method' => PaymentMethod::class,
             'confirmed_at' => 'datetime',

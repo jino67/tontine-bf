@@ -27,10 +27,9 @@ function prizeCagnotte(Organization $organization, User $creator, array $attribu
     ]);
 }
 
-it('crée une cagnotte à gagnants avec la répartition par défaut et des rangs attribués visibles de tous', function () {
+it('crée une cagnotte à gagnants avec la répartition par défaut, sans gain attribué par le responsable', function () {
     $organization = Organization::factory()->create();
     $admin = actingAsUser(memberOf($organization, Role::Admin));
-    $awa = memberOf($organization);
 
     $id = $this->postJson("/api/v1/orgs/{$organization->id}/cagnottes", [
         'title' => 'Cagnotte Flash du vendredi',
@@ -46,28 +45,20 @@ it('crée une cagnotte à gagnants avec la répartition par défaut et des rangs
         ->assertJsonPath('data.min_amount', 250)
         ->assertJsonPath('data.beneficiary', null)
         ->assertJsonPath('data.prizes.0.percent', 50)
-        ->assertJsonPath('data.prizes.0.designated_user.id', $admin->id)
-        ->assertJsonPath('data.prizes.2.designated_user', null)
+        ->assertJsonMissingPath('data.prizes.0.designated_user')
         ->json('data.id');
 
-    actingAsUser($awa);
-    $this->getJson("/api/v1/orgs/{$organization->id}/cagnottes/{$id}")
-        ->assertOk()
-        ->assertJsonPath('data.prizes.0.designated_user.name', $admin->name);
+    expect(Cagnotte::find($id)->getRawOriginal('designations'))->toBeNull();
 });
 
-it('refuse une répartition incohérente ou un rang attribué au-delà du nombre de gagnants', function () {
+it('refuse une répartition incohérente', function () {
     $organization = Organization::factory()->create();
-    $admin = actingAsUser(memberOf($organization, Role::Admin));
+    actingAsUser(memberOf($organization, Role::Admin));
     $payload = ['title' => 'Cagnotte', 'mode' => 'gagnants', 'duration' => 'hebdo_7j', 'ticket_price' => 500, 'winners_count' => 2];
 
     $this->postJson("/api/v1/orgs/{$organization->id}/cagnottes", [...$payload, 'prize_split' => [70, 20]])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('prize_split');
-
-    $this->postJson("/api/v1/orgs/{$organization->id}/cagnottes", [...$payload, 'designations' => [['rank' => 3, 'user_id' => $admin->id]]])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('designations.0.rank');
 });
 
 it('distribue tout le pot quand il y a moins de participants que de rangs', function () {
@@ -78,24 +69,17 @@ it('distribue tout le pot quand il y a moins de participants que de rangs', func
         ->and(CagnottePrizeDraw::awardedAmounts(1575, [50, 30, 20], [1, 2, 3]))->toBe([1 => 788, 2 => 472, 3 => 315]);
 });
 
-it('verrouille les rangs attribués dès la première participation', function () {
+it('ne permet plus au responsable d’attribuer un gain à un membre', function () {
     $organization = Organization::factory()->create();
     $admin = actingAsUser(memberOf($organization, Role::Admin));
     $awa = memberOf($organization);
-    $cagnotte = prizeCagnotte($organization, $admin, ['winners_count' => 2, 'prize_split' => [60, 40]]);
+    $cagnotte = prizeCagnotte($organization, $admin);
 
-    $this->putJson(prizeUrl($cagnotte, '/designations'), ['designations' => [['rank' => 2, 'user_id' => $awa->id]]])
-        ->assertOk()
-        ->assertJsonPath('data.prizes.1.designated_user.id', $awa->id);
-
-    $this->postJson(prizeUrl($cagnotte, '/contributions'), ['user_id' => $awa->id, 'amount' => 1100, 'method' => 'especes'])
-        ->assertCreated()
-        ->assertJsonPath('data.tickets', 4);
-
-    $this->putJson(prizeUrl($cagnotte, '/designations'), ['designations' => []])->assertUnprocessable();
+    $this->putJson(prizeUrl($cagnotte, '/designations'), ['designations' => [['rank' => 1, 'user_id' => $awa->id]]])
+        ->assertNotFound();
 });
 
-it('tire les gagnants de façon vérifiable après la clôture, en respectant les rangs attribués, puis trace la remise des gains', function () {
+it('tire tous les gagnants au sort de façon vérifiable après la clôture, puis trace la remise des gains', function () {
     $organization = Organization::factory()->create();
     $admin = memberOf($organization, Role::Admin);
     [$awa, $binta, $cheick] = [memberOf($organization), memberOf($organization), memberOf($organization)];
@@ -103,7 +87,6 @@ it('tire les gagnants de façon vérifiable après la clôture, en respectant le
         'duration' => CagnotteDuration::Flash,
         'ends_at' => now()->addDay(),
         'fee_percent' => 10,
-        'designations' => [['rank' => 1, 'user_id' => $admin->id]],
     ]);
 
     actingAsUser($admin);
@@ -138,7 +121,6 @@ it('tire les gagnants de façon vérifiable après la clôture, en respectant le
     $seed = $data['draw']['seed'];
     $userOf = fn (string $ticket) => (int) substr(explode('#', $ticket)[0], 1);
     $drawnUsers = collect($draw['tickets'])
-        ->reject(fn (string $ticket) => $userOf($ticket) === $admin->id)
         ->sortBy(fn (string $ticket) => hash('sha256', $seed.'|'.$ticket), SORT_STRING)
         ->map($userOf)
         ->unique()
@@ -147,8 +129,8 @@ it('tire les gagnants de façon vérifiable après la clôture, en respectant le
 
     $winners = collect($data['winners']);
     expect(hash('sha256', $seed))->toBe($draw['seed_hash'])
-        ->and($winners->pluck('user.id')->all())->toBe([$admin->id, $drawnUsers[0], $drawnUsers[1]])
-        ->and($winners->pluck('designated')->all())->toBe([true, false, false])
+        ->and($winners->pluck('user.id')->all())->toBe(array_slice($drawnUsers, 0, 3))
+        ->and($winners->first())->not->toHaveKey('designated')
         ->and($winners->pluck('prize_amount')->all())->toBe([788, 472, 315]);
 
     $second = $winners->firstWhere('rank', 2);

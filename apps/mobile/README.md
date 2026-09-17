@@ -16,7 +16,7 @@ Puis l'application (émulateur Android ou Chrome) :
 cd apps/mobile && flutter run
 ```
 
-Sans `API_URL`, l'application vise `http://10.0.2.2:8000/api/v1` sur émulateur Android et `http://localhost:8000/api/v1` sur le web. En local, le code de connexion reçu « par SMS » est écrit dans `apps/api/storage/logs/laravel.log`.
+Sans `API_URL`, l'application vise `http://10.0.2.2:8000/api/v1` sur émulateur Android et `http://localhost:8000/api/v1` sur le web. En local, le code de connexion est écrit dans `apps/api/storage/logs/laravel.log` (API en `OTP_CHANNEL=log`).
 
 Pour viser l'API hébergée chez LWS, installée à la racine d'un domaine (sans sous-domaine) :
 
@@ -31,7 +31,7 @@ flutter build apk --release --dart-define=API_URL=https://<domaine>/api/v1
 | `lib/app` | Démarrage, thème, charte typographique, navigation principale |
 | `lib/core` | Client API, session (jeton chiffré, organisation courante), formats, composants visuels |
 | `lib/content` | **Textes fixes** : présentation, guide des types de tontine, FAQ, confidentialité. À modifier ici, sans toucher aux écrans |
-| `lib/features/auth` | Présentation, connexion par SMS, nom du membre |
+| `lib/features/auth` | Présentation, connexion par code (par e-mail pendant les essais), nom du membre |
 | `lib/features/organizations` | Choix de l'organisation, code d'invitation, membres et rôles |
 | `lib/features/home` | Accueil et échéancier personnel |
 | `lib/features/tontines` | Liste, création, détail, tours, paiements, tirage vérifiable avec tours attribués |

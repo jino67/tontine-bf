@@ -33,7 +33,6 @@ void main() {
       'id': 3,
       'rank': 1,
       'prize_amount': 1575,
-      'designated': false,
       'paid_at': null,
       'payout': {'status': 'en_cours', 'withdraw_mode': 'orange-money-burkina', 'amount': 1575, 'failure_reason': null},
     });

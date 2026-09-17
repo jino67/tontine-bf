@@ -10,7 +10,7 @@ Deux méthodes sont décrites : l'archive prête à décompresser (sans SSH, sec
 |---|---|---|
 | PHP 8.2 ou plus | Laravel 12 | changer la version PHP dans le panneau, sinon changer d'offre |
 | Extension `pdo_sqlite` | base de données | activer l'extension, sinon passer à MySQL ou MariaDB (section 6) |
-| Tâches planifiées (cron) toutes les minutes | file d'attente, purge des codes SMS et des jetons | sans cron, les purges doivent être lancées à la main |
+| Tâches planifiées (cron) toutes les minutes | file d'attente, purge des codes de connexion et des jetons | sans cron, les purges doivent être lancées à la main |
 | Certificat SSL Let's Encrypt | HTTPS, obligatoire pour l'app et pour PayDunya | l'activer sur le domaine |
 | Accès SSH | pratique, mais **pas nécessaire** avec l'archive | utiliser la méthode de la section 2 |
 
@@ -82,6 +82,21 @@ SESSION_DRIVER=file
 CACHE_STORE=file
 QUEUE_CONNECTION=database
 
+# Codes de connexion par e-mail, envoyés depuis une boîte créée dans le panneau LWS
+OTP_CHANNEL=mail
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtps
+MAIL_HOST=mail.<domaine>
+MAIL_PORT=465
+MAIL_USERNAME=<adresse de la boîte>
+MAIL_PASSWORD=<mot de passe de la boîte>
+MAIL_FROM_ADDRESS="<adresse de la boîte>"
+MAIL_FROM_NAME="Tontine BF"
+
+# Numéros de test séparés par des virgules, connectés avec ce code fixe à 6 chiffres. Ignorés en production.
+OTP_TEST_PHONES=
+OTP_TEST_CODE=
+
 PAYDUNYA_MODE=live
 PAYDUNYA_MASTER_KEY=<clé principale>
 PAYDUNYA_PUBLIC_KEY=<clé publique live>
@@ -91,7 +106,7 @@ PAYDUNYA_STORE_NAME="Tontine BF"
 PAYDUNYA_PAYOUTS_ENABLED=false
 ```
 
-**`APP_ENV=staging` tant qu'aucun fournisseur SMS n'est branché** : les codes de connexion sont alors écrits dans `tontine-api/storage/logs`, sinon personne ne peut se connecter. En `production`, l'API refuse d'envoyer un code tant qu'un fournisseur SMS n'est pas configuré.
+**Codes de connexion.** Avec `OTP_CHANNEL=mail`, le code part par e-mail. À la première connexion, l'application demande l'adresse, qui reste ensuite liée au numéro. Les numéros de `OTP_TEST_PHONES` se connectent avec `OTP_TEST_CODE` sans rien recevoir, uniquement hors `production` : garder `APP_ENV=staging` pendant les essais. Sans `OTP_CHANNEL=mail`, les codes sont écrits dans `tontine-api/storage/logs`, ce que l'API refuse en `production`. Les réglages mail ne sont pris en compte qu'après avoir vidé `tontine-api/bootstrap/cache` s'il contient des fichiers `.php`.
 
 ## 4. Tâche cron
 

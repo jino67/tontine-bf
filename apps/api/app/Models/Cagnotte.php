@@ -27,7 +27,7 @@ class Cagnotte extends Model
         'organization_id', 'created_by', 'mode', 'title', 'description', 'duration', 'target_amount', 'min_amount',
         'beneficiary_user_id', 'beneficiary_name', 'opens_at', 'ends_at', 'status', 'closed_at',
         'handover_amount', 'handover_method', 'handover_reference', 'handed_over_at', 'handover_recorded_by',
-        'handover_confirmed_at', 'ticket_price', 'winners_count', 'prize_split', 'fee_percent', 'designations',
+        'handover_confirmed_at', 'ticket_price', 'winners_count', 'prize_split', 'fee_percent',
         'draw_seed', 'draw_seed_hash', 'draw_tickets', 'draw_reveal_after', 'drawn_at',
     ];
 
@@ -50,7 +50,6 @@ class Cagnotte extends Model
             'winners_count' => 'integer',
             'prize_split' => 'array',
             'fee_percent' => 'integer',
-            'designations' => 'array',
             'draw_seed' => 'encrypted',
             'draw_tickets' => 'array',
             'opens_at' => 'datetime',

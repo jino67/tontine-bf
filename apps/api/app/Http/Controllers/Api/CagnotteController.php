@@ -55,7 +55,6 @@ class CagnotteController extends Controller
             'prize_split' => ['nullable', 'array'],
             'prize_split.*' => ['numeric', 'gt:0'],
             'fee_percent' => ['nullable', 'integer', 'min:0', 'max:30'],
-            ...$this->designationRules($member),
         ]);
 
         $prizeFields = $prize ? $this->prizeFields($data) : [];
@@ -99,39 +98,6 @@ class CagnotteController extends Controller
         return CagnotteResource::make($this->detail($organization, $cagnotte));
     }
 
-    /**
-     * Rangs attribués par le responsable. Ils sont affichés à tous avant toute participation,
-     * et ne peuvent plus changer dès qu'une participation est enregistrée.
-     */
-    public function designations(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
-    {
-        $this->ensureCanManage($request);
-
-        if (! $cagnotte->isPrize()) {
-            throw new DomainRuleException('Seules les cagnottes à gagnants ont des rangs à attribuer.');
-        }
-
-        if ($cagnotte->contributions()->exists()) {
-            throw new DomainRuleException('Des participations sont déjà enregistrées, les rangs attribués ne peuvent plus changer.');
-        }
-
-        $member = Rule::exists('organization_user', 'user_id')->where('organization_id', $organization->id);
-        $data = $request->validate(['designations' => ['present', 'array'], ...$this->designationRules($member)]);
-
-        $cagnotte->update(['designations' => $this->normalizeDesignations($data['designations'], $cagnotte->winners_count)]);
-
-        return CagnotteResource::make($this->detail($organization, $cagnotte));
-    }
-
-    private function designationRules(object $member): array
-    {
-        return [
-            'designations' => ['nullable', 'array'],
-            'designations.*.rank' => ['required', 'integer', 'min:1', 'distinct'],
-            'designations.*.user_id' => ['required', 'integer', 'distinct', $member],
-        ];
-    }
-
     private function prizeFields(array $data): array
     {
         $winners = (int) $data['winners_count'];
@@ -150,29 +116,7 @@ class CagnotteController extends Controller
             'winners_count' => $winners,
             'prize_split' => $split,
             'fee_percent' => (int) ($data['fee_percent'] ?? 0),
-            'designations' => $this->normalizeDesignations($data['designations'] ?? [], $winners),
         ];
-    }
-
-    private function normalizeDesignations(array $designations, int $winners): array
-    {
-        $normalized = [];
-
-        foreach ($designations as $index => $designation) {
-            $rank = (int) $designation['rank'];
-
-            if ($rank > $winners) {
-                throw ValidationException::withMessages([
-                    "designations.{$index}.rank" => "Le rang {$rank} dépasse le nombre de gagnants.",
-                ]);
-            }
-
-            $normalized[] = ['rank' => $rank, 'user_id' => (int) $designation['user_id']];
-        }
-
-        usort($normalized, fn (array $a, array $b) => $a['rank'] <=> $b['rank']);
-
-        return $normalized;
     }
 
     private function detail(Organization $organization, Cagnotte $cagnotte): Cagnotte

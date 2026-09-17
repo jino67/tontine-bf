@@ -101,17 +101,17 @@ Le téléphone n'envoie aucun jeton, aucun cookie. Le serveur ne peut donc se fi
 
 `admin_tirage_config.dart` et `tirage_service.dart` décrivaient une « sélection admin discrète » qui fixait les gagnants de certains rangs, avec une « raison interne », pendant que les utilisateurs voyaient un « affichage aléatoire ». Tromper des participants qui ont payé fait perdre leur confiance dès que c'est découvert, et aucun partenaire de paiement ne l'accepte.
 
-**Décision retenue :** le responsable garde la possibilité d'imposer un gagnant ou un tour, mais **à découvert** :
+**Décision retenue :** rien n'est jamais imposé en secret.
 
-- tontine `tirage_ordre` : les tours attribués sont publiés à tous les membres au lancement du tirage, avec l'empreinte, et ne changent plus ;
-- cagnotte à gagnants : les rangs attribués sont affichés à tous, avec le nom, avant la première participation, puis verrouillés ;
-- tout le reste est tiré au sort de façon vérifiable (voir 4.5), et l'application indique pour chaque résultat « attribué par le responsable » ou « tiré au sort ».
+- tontine `tirage_ordre` : le responsable peut attribuer des tours, publiés à tous les membres au lancement du tirage avec l'empreinte, et qui ne changent plus ;
+- cagnotte à gagnants : l'attribution d'un gain par le responsable est désactivée pour l'instant, tous les gagnants sont tirés au sort ;
+- tout le reste est tiré au sort de façon vérifiable (voir 4.5), et l'application indique pour chaque tour « attribué par le responsable » ou « tiré au sort ».
 
 ### 2.3 Cagnottes à tickets
 
 Payer pour obtenir des tickets et gagner une part de la somme par tirage au sort relève d'un secteur réglementé dans beaucoup de pays. Le porteur du projet a choisi de **garder le module** et de l'améliorer ; le cadre applicable est à vérifier pays par pays avant l'ouverture au public.
 
-Améliorations apportées par rapport à l'ancienne version : durée limitée avec compte à rebours, prix du ticket et répartition des gains affichés dès la création, commission de l'organisation plafonnée à 30 % et visible de tous, rangs attribués publics, tirage vérifiable, remise de chaque gain enregistrée puis confirmée par le gagnant, montants en entiers.
+Améliorations apportées par rapport à l'ancienne version : durée limitée avec compte à rebours, prix du ticket et répartition des gains affichés dès la création, commission de l'organisation plafonnée à 30 % et visible de tous, tirage vérifiable de tous les gagnants, remise de chaque gain enregistrée puis confirmée par le gagnant, montants en entiers.
 
 La **cagnotte solidaire** (collecte pour une personne, sans tirage) existe à côté, avec remise des fonds confirmée par le bénéficiaire.
 
@@ -233,7 +233,7 @@ Un utilisateur est identifié par son numéro de téléphone et peut appartenir 
 | `payouts` | `cycle_id`, `member_id`, `amount`, `method`, `reference`, `status` |
 | `penalties` | `contribution_id`, `amount`, `reason`, `waived_by` |
 | `draws` | `tontine_id`, `seed_hash`, `seed` (révélé après), `slots` json (parts tirées), `designations` json (tours attribués), `result` json, `reveal_after`, `revealed_at` |
-| `cagnottes` | `mode` (solidaire, gagnants), `duration`, `opens_at`, `ends_at`, `status`, `min_amount`, bénéficiaire (membre ou nom), remise des fonds ; pour le mode gagnants : `ticket_price`, `winners_count`, `prize_split` json, `fee_percent`, `designations` json, `draw_seed` chiffrée, `draw_seed_hash`, `draw_tickets` json |
+| `cagnottes` | `mode` (solidaire, gagnants), `duration`, `opens_at`, `ends_at`, `status`, `min_amount`, bénéficiaire (membre ou nom), remise des fonds ; pour le mode gagnants : `ticket_price`, `winners_count`, `prize_split` json, `fee_percent`, `designations` json (inutilisé depuis la désactivation des gains attribués), `draw_seed` chiffrée, `draw_seed_hash`, `draw_tickets` json |
 | `cagnotte_contributions` | `user_id`, `amount`, `tickets`, `method`, `reference`, `recorded_by`, `confirmed_at` |
 | `cagnotte_winners` | `rank`, `user_id`, `prize_amount`, `designated`, remise (`paid_at`, `paid_method`, `paid_reference`), `confirmed_at` |
 | `payments` | `provider`, `provider_ref`, `idempotency_key`, `amount`, `status`, `payload` json |
@@ -286,7 +286,6 @@ GET    /api/v1/orgs/{org}/tontines/{t}/draw        (données de vérification)
 
 GET    /api/v1/orgs/{org}/cagnottes
 POST   /api/v1/orgs/{org}/cagnottes                (mode solidaire ou gagnants)
-PUT    /api/v1/orgs/{org}/cagnottes/{c}/designations
 POST   /api/v1/orgs/{org}/cagnottes/{c}/draw       (tickets + empreinte)
 POST   /api/v1/orgs/{org}/cagnottes/{c}/draw/reveal
 

@@ -79,7 +79,6 @@ Route::prefix('v1')->group(function () {
             Route::post('cagnottes/{cagnotte}/contributions/{contribution}/confirm', [CagnotteContributionController::class, 'confirm']);
             Route::post('cagnottes/{cagnotte}/handover', [CagnotteHandoverController::class, 'store']);
             Route::post('cagnottes/{cagnotte}/handover/confirm', [CagnotteHandoverController::class, 'confirm']);
-            Route::put('cagnottes/{cagnotte}/designations', [CagnotteController::class, 'designations']);
             Route::post('cagnottes/{cagnotte}/draw', [CagnotteDrawController::class, 'store']);
             Route::post('cagnottes/{cagnotte}/draw/reveal', [CagnotteDrawController::class, 'reveal']);
             Route::post('cagnottes/{cagnotte}/winners/{winner}/payout', [CagnotteWinnerController::class, 'payout']);

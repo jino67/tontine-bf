@@ -47,7 +47,7 @@ class CagnotteDrawController extends Controller
 
             $tickets = CagnottePrizeDraw::tickets($cagnotte->contributions()->get(['user_id', 'tickets']));
 
-            if ($tickets === [] && ($cagnotte->designations ?? []) === []) {
+            if ($tickets === []) {
                 throw new DomainRuleException('Aucun ticket n’a été vendu, il n’y a rien à tirer.');
             }
 
@@ -88,7 +88,6 @@ class CagnotteDrawController extends Controller
             $winners = CagnottePrizeDraw::pickWinners(
                 $cagnotte->draw_seed,
                 $cagnotte->draw_tickets ?? [],
-                $cagnotte->designations ?? [],
                 $cagnotte->winners_count,
             );
             $amounts = CagnottePrizeDraw::awardedAmounts(
@@ -103,7 +102,6 @@ class CagnotteDrawController extends Controller
                     'rank' => $winner['rank'],
                     'user_id' => $winner['user_id'],
                     'prize_amount' => $amounts[$winner['rank']] ?? 0,
-                    'designated' => $winner['designated'],
                 ]);
             }
 

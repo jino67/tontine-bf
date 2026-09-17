@@ -36,8 +36,5 @@ const cagnotteGuides = [
 
 CagnotteGuide cagnotteGuideFor(CagnotteMode mode) => cagnotteGuides.firstWhere((guide) => guide.mode == mode);
 
-const designationRule = 'Le responsable peut attribuer lui-même un gain à un membre. Ce choix est affiché à tous, '
-    'avec le nom, avant la première participation. Il ne peut plus être modifié ensuite.';
-
 const feeExplanation = 'La commission est retenue sur la somme réunie avant le partage des gains. '
     'Elle est affichée à tous dès la création.';

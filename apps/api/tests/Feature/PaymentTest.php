@@ -157,7 +157,6 @@ it('n’envoie un gain par PayDunya que si les remises sont activées, puis le m
         'rank' => 1,
         'user_id' => $awa->id,
         'prize_amount' => 1575,
-        'designated' => false,
     ]);
     $url = "/api/v1/orgs/{$organization->id}/cagnottes/{$cagnotte->id}/winners/{$winner->id}/payout";
     $payload = ['method' => 'paydunya', 'withdraw_mode' => 'orange-money-burkina', 'phone' => '+226 70 12 34 56'];

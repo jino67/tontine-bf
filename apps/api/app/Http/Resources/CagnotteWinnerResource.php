@@ -21,7 +21,6 @@ class CagnotteWinnerResource extends JsonResource
                 'phone' => $this->phoneFor($request, $this->user),
             ]),
             'prize_amount' => $this->prize_amount,
-            'designated' => $this->designated,
             'paid_at' => $this->paid_at?->toIso8601String(),
             'paid_method' => $this->paid_method?->value,
             'paid_reference' => $this->paid_reference,

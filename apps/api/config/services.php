@@ -28,6 +28,15 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Codes de connexion. "log" les écrit dans storage/logs (refusé en production), "mail" les envoie
+    // à l'adresse e-mail liée au numéro. Les numéros de OTP_TEST_PHONES, séparés par des virgules,
+    // se connectent avec OTP_TEST_CODE (6 chiffres) sans rien recevoir, sauf en production.
+    'otp' => [
+        'channel' => env('OTP_CHANNEL', 'log'),
+        'test_phones' => env('OTP_TEST_PHONES', ''),
+        'test_code' => env('OTP_TEST_CODE'),
+    ],
+
     // Paiements en ligne. En mode "test", les factures passent par la sandbox PayDunya.
     // Les remises (déboursements) n'ont pas de sandbox : elles déplacent de l'argent réel,
     // et restent refusées tant que PAYDUNYA_PAYOUTS_ENABLED ne vaut pas true.

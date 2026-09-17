@@ -1,6 +1,6 @@
 # API Tontine BF
 
-API Laravel 12 du SaaS. Authentification par OTP SMS et jeton Sanctum, données cloisonnées par organisation.
+API Laravel 12 du SaaS. Authentification par code à usage unique (par e-mail pendant les essais, puis WhatsApp ou SMS) et jeton Sanctum, données cloisonnées par organisation.
 
 ## Installation locale
 
@@ -16,7 +16,7 @@ cp .env.example .env && php artisan key:generate && php artisan migrate
 php artisan test
 ```
 
-En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. En production, l'application refuse de démarrer l'envoi tant qu'aucun fournisseur SMS n'est branché.
+Le canal des codes se choisit avec `OTP_CHANNEL`. `log`, par défaut, écrit les codes dans `storage/logs/laravel.log` et reste refusé en production. `mail` envoie le code à l'adresse e-mail liée au numéro ; à la première connexion, l'API répond 422 sur `email` et l'application demande l'adresse, liée au compte une fois le code vérifié. Les numéros listés dans `OTP_TEST_PHONES` se connectent avec `OTP_TEST_CODE` sans rien recevoir, sauf en production.
 
 ## Règles clés
 
@@ -26,7 +26,7 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 - **Montants** : entiers en francs CFA.
 - **Cotisations** : le trésorier enregistre, le membre confirme. Une cotisation confirmée ne peut plus être modifiée.
 - **Tirage vérifiable** (type `tirage_ordre`) : l'empreinte `sha256` de la graine est publiée d'abord, la graine n'est révélée qu'après la date annoncée, et l'ordre se recalcule sans l'application. Le responsable peut attribuer des tours (`designations`) : ils sont publiés avec l'empreinte et visibles de tous.
-- **Cagnottes** : durée `flash_24h`, `hebdo_7j`, `mensuelle_30j` ou `personnalisee` ; une cagnotte ouverte dont `ends_at` est passé est vue comme clôturée. Mode `solidaire` : remise des fonds enregistrée par un responsable, confirmée par le bénéficiaire membre. Mode `gagnants` : un ticket par tranche de `ticket_price`, gains répartis selon `prize_split` après `fee_percent`, rangs attribués modifiables tant qu'aucune participation n'existe, tirage vérifiable après clôture, remise de chaque gain confirmée par le gagnant.
+- **Cagnottes** : durée `flash_24h`, `hebdo_7j`, `mensuelle_30j` ou `personnalisee` ; une cagnotte ouverte dont `ends_at` est passé est vue comme clôturée. Mode `solidaire` : remise des fonds enregistrée par un responsable, confirmée par le bénéficiaire membre. Mode `gagnants` : un ticket par tranche de `ticket_price`, gains répartis selon `prize_split` après `fee_percent`, tous les gagnants tirés au sort de façon vérifiable après clôture (l'attribution d'un gain par le responsable est désactivée), remise de chaque gain confirmée par le gagnant.
 - **Paiements PayDunya** : le membre paie lui-même sa cotisation ou sa participation sur la page PayDunya. Le statut est toujours relu auprès de l'API PayDunya (notification signée ou retour dans l'application), puis appliqué une seule fois : la cotisation ou la participation est alors enregistrée et confirmée. Un montant différent du montant attendu n'est jamais appliqué. Les remises de gains et de fonds peuvent partir par PayDunya (`method: paydunya`, `withdraw_mode`, `phone`) si `PAYDUNYA_PAYOUTS_ENABLED=true` : il n'existe pas de sandbox pour ces envois.
 - **Erreurs** : validation en 422 avec `errors`, règle métier en 422 avec `message`, droits en 403.
 
@@ -34,7 +34,7 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 
 | Méthode | Chemin | Accès |
 |---|---|---|
-| POST | `auth/otp/request` | public |
+| POST | `auth/otp/request {"phone", "email"}` | public, renvoie `channel` et `destination` masquée |
 | POST | `auth/otp/verify` | public, renvoie `token` |
 | POST | `auth/logout` | connecté |
 | GET, PATCH | `me` | connecté |
@@ -62,7 +62,6 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 | POST, PUT | `.../cagnottes/{cagnotte}/contributions[/{contribution}]` | trésorier, owner, admin |
 | POST | `.../cagnottes/{cagnotte}/contributions/{contribution}/confirm` | la personne concernée |
 | POST | `.../cagnottes/{cagnotte}/handover` et `.../handover/confirm` | owner/admin, puis le bénéficiaire |
-| PUT | `.../cagnottes/{cagnotte}/designations` | owner, admin, avant toute participation |
 | POST | `.../cagnottes/{cagnotte}/draw` et `.../draw/reveal` | owner/admin après clôture, puis membre après `reveal_after` |
 | POST | `.../cagnottes/{cagnotte}/winners/{winner}/payout` et `.../confirm` | owner/admin, puis le gagnant |
 | POST | `.../cycles/{cycle}/contributions/{contribution}/pay` | le membre concerné, renvoie `checkout_url` |
@@ -72,7 +71,7 @@ En local, `LogOtpSender` écrit les codes OTP dans `storage/logs/laravel.log`. E
 
 ## Parcours type
 
-1. `POST auth/otp/request {"phone": "70 12 34 56"}` puis `POST auth/otp/verify {"phone": "70123456", "code": "123456"}`.
+1. `POST auth/otp/request {"phone": "70 12 34 56"}` (avec `"email"` à la première connexion quand `OTP_CHANNEL=mail`) puis `POST auth/otp/verify {"phone": "70123456", "code": "123456"}`.
 2. `POST orgs {"name": "Groupement Wend Panga"}`.
 3. `POST orgs/1/tontines {"name": "Tontine du marché", "type": "rotative", "amount": 5000, "frequency": "hebdomadaire", "starts_on": "2026-10-05"}`.
 4. `POST orgs/1/invitations {"tontine_id": 1}` puis partage du code. Chaque membre appelle `POST invitations/{code}/accept`.

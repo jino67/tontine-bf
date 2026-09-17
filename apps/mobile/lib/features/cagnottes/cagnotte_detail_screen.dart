@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
-import '../../content/cagnotte_guide.dart';
 import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
@@ -141,11 +140,6 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
       ),
     );
     if (saved == true && mounted) showDone(context, 'Remise du gain enregistrée');
-  }
-
-  Future<void> _designate(Cagnotte cagnotte) async {
-    final saved = await showDesignationsSheet(context, repository: widget.repository, cagnotte: cagnotte);
-    if (saved == true && mounted) showDone(context, 'Rangs publiés');
   }
 
   Future<void> _participateOnline(Cagnotte cagnotte) async {
@@ -349,21 +343,13 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
 
   List<Widget> _prizeSections(Cagnotte cagnotte, Role role, int? me) {
     final theme = Theme.of(context);
-    final canDesignate = role.canManage && cagnotte.isOpen && cagnotte.participationsCount == 0;
     final notes = [
       if (cagnotte.isOpen) 'Montants calculés sur la somme réunie à ce jour.',
       if (cagnotte.feePercent > 0) 'Commission de l’organisation : ${cagnotte.feePercent} %, retenue avant le partage.',
-      if (canDesignate)
-        designationRule
-      else if (cagnotte.designations.isNotEmpty)
-        'Les gains attribués étaient affichés à tous avant la première participation et ne peuvent plus changer.',
     ];
 
     return [
-      SectionTitle(
-        'Gains',
-        trailing: canDesignate ? TextButton(onPressed: () => _designate(cagnotte), child: const Text('Attribuer')) : null,
-      ),
+      const SectionTitle('Gains'),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Card(
@@ -375,10 +361,7 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                   leading: RankBadge(rank: cagnotte.prizes[i].rank),
-                  title: Text(
-                    cagnotte.prizes[i].isDesignated ? 'Attribué à ${cagnotte.prizes[i].designatedName ?? 'un membre'}' : 'Tiré au sort',
-                    style: cagnotte.prizes[i].isDesignated ? AppType.sans(bold: true, color: AppColors.indigo) : null,
-                  ),
+                  title: Text('${capitalize(ordinal(cagnotte.prizes[i].rank))} gain'),
                   subtitle: Text('${percentLabel(cagnotte.prizes[i].percent)} de la somme à partager'),
                   trailing: Money(cagnotte.prizes[i].amount, style: AppType.sans(size: 17, bold: true)),
                 ),
@@ -519,9 +502,8 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
               SelectableText(draw.tickets.join('  '), style: monoStyle),
               const SizedBox(height: 10),
               Text(
-                'Contrôle : sha256(graine) doit donner l’empreinte. Les tickets des membres qui ont un gain attribué sont écartés, '
-                'les autres sont triés par sha256(graine + "|" + ticket). Chaque membre gagne au plus une fois, dans l’ordre de son '
-                'premier ticket. « u12#3 » est le 3e ticket du membre 12.',
+                'Contrôle : sha256(graine) doit donner l’empreinte. Les tickets sont triés par sha256(graine + "|" + ticket). '
+                'Chaque membre gagne au plus une fois, dans l’ordre de son premier ticket. « u12#3 » est le 3e ticket du membre 12.',
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -759,10 +741,6 @@ class _WinnerRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(isMe ? '$name (vous)' : name, style: theme.textTheme.titleSmall),
-                    Text(
-                      winner.designated ? 'Attribué par le responsable' : 'Tiré au sort',
-                      style: AppType.sans(size: 14, bold: winner.designated, color: winner.designated ? AppColors.indigo : AppColors.muted),
-                    ),
                     Money(winner.prizeAmount, style: AppType.sans(size: 17, bold: true, color: AppColors.goldText)),
                   ],
                 ),
