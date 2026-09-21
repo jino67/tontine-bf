@@ -10,8 +10,10 @@ use App\Models\Cagnotte;
 use App\Models\CagnotteWinner;
 use App\Models\Payout;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\Fees\CagnotteFees;
 use App\Services\PayDunya\PayDunyaClient;
+use App\Services\Wallet\WalletService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,7 +30,11 @@ class PayoutService
         'orange-money-mali', 'mtn-benin', 'moov-benin', 't-money-togo', 'moov-togo',
     ];
 
-    public function __construct(private PayDunyaClient $client, private CagnotteFees $cagnotteFees) {}
+    public function __construct(
+        private PayDunyaClient $client,
+        private CagnotteFees $cagnotteFees,
+        private WalletService $wallet,
+    ) {}
 
     public static function ensureNoneInProgress(Model $payable): void
     {
@@ -42,7 +48,7 @@ class PayoutService
         }
     }
 
-    public function send(Model $payable, int $organizationId, User $initiator, int $amount, string $phone, string $withdrawMode, ?int $recipientId): Payout
+    public function send(Model $payable, ?int $organizationId, User $initiator, int $amount, string $phone, string $withdrawMode, ?int $recipientId): Payout
     {
         if (! config('services.paydunya.payouts_enabled')) {
             throw new DomainRuleException('Les remises par PayDunya ne sont pas activées sur ce serveur. Enregistrez une remise manuelle.');
@@ -102,6 +108,10 @@ class PayoutService
             if ($status !== 'success') {
                 $payout->update(['status' => PayoutStatus::Failed, 'failure_reason' => $data['response_text'] ?? null, 'payload' => $data]);
 
+                if ($payout->payable instanceof WalletTransaction) {
+                    $this->wallet->failWithdrawal($payout->payable, $data['response_text'] ?? null);
+                }
+
                 return $payout;
             }
 
@@ -134,6 +144,8 @@ class PayoutService
                 ]);
 
                 $this->cagnotteFees->chargePlatform($payable, 'Part de la plateforme retenue à la remise des fonds.');
+            } elseif ($payable instanceof WalletTransaction) {
+                $this->wallet->completeWithdrawal($payable, $payout);
             } else {
                 Log::warning('PayDunya : remise réussie sur un élément déjà marqué remis', ['payout' => $payout->id]);
             }

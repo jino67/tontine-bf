@@ -25,6 +25,10 @@ class User extends Authenticatable
         'name',
         'email',
         'locale',
+        // Portefeuille : numéro qui reçoit les retraits, et date du dernier changement.
+        'payout_phone',
+        'payout_mode',
+        'payout_changed_at',
     ];
 
     /**
@@ -48,6 +52,8 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'payout_changed_at' => 'datetime',
+            'wallet_verified_at' => 'datetime',
         ];
     }
 
@@ -59,5 +65,10 @@ class User extends Authenticatable
     public function organizations(): BelongsToMany
     {
         return $this->belongsToMany(Organization::class)->withPivot('role')->withTimestamps();
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\PaymentStatus;
 use App\Models\Contribution;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,7 +14,11 @@ class PaymentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'purpose' => $this->payable_type === (new Contribution)->getMorphClass() ? 'cotisation' : 'cagnotte',
+            'purpose' => match ($this->payable_type) {
+                (new Contribution)->getMorphClass() => 'cotisation',
+                (new User)->getMorphClass() => 'depot',
+                default => 'cagnotte',
+            },
             'payable_id' => $this->payable_id,
             // amount est ce que le membre débourse : la base et les frais de service réunis.
             'amount' => $this->amount,

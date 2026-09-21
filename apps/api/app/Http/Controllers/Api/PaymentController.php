@@ -6,6 +6,7 @@ use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Concerns\AuthorizesOrganizationRoles;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaymentResource;
+use App\Http\Resources\WalletTransactionResource;
 use App\Models\Cagnotte;
 use App\Models\Contribution;
 use App\Models\Cycle;
@@ -13,6 +14,7 @@ use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\Tontine;
 use App\Services\PaymentService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,7 +23,7 @@ class PaymentController extends Controller
 {
     use AuthorizesOrganizationRoles;
 
-    public function __construct(private PaymentService $payments) {}
+    public function __construct(private PaymentService $payments, private WalletService $wallet) {}
 
     public function payContribution(Request $request, Organization $organization, Tontine $tontine, Cycle $cycle, Contribution $contribution): JsonResponse
     {
@@ -34,6 +36,31 @@ class PaymentController extends Controller
         $payment = $this->payments->startForContribution($contribution, $request->user());
 
         return PaymentResource::make($payment)->response()->setStatusCode(201);
+    }
+
+    /** Même cotisation, réglée avec l'argent déjà présent sur le solde. */
+    public function payContributionFromBalance(Request $request, Organization $organization, Tontine $tontine, Cycle $cycle, Contribution $contribution): JsonResponse
+    {
+        abort_unless(
+            $contribution->member->user_id === $request->user()->id,
+            403,
+            'Seul le membre concerné peut payer sa cotisation.',
+        );
+
+        $transaction = $this->wallet->payContribution($contribution, $request->user());
+
+        return WalletTransactionResource::make($transaction)->response()->setStatusCode(201);
+    }
+
+    public function payCagnotteFromBalance(Request $request, Organization $organization, Cagnotte $cagnotte): JsonResponse
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'integer', 'min:'.$cagnotte->min_amount, 'max:10000000'],
+        ]);
+
+        $transaction = $this->wallet->participate($cagnotte, $request->user(), (int) $data['amount']);
+
+        return WalletTransactionResource::make($transaction)->response()->setStatusCode(201);
     }
 
     public function payCagnotte(Request $request, Organization $organization, Cagnotte $cagnotte): JsonResponse

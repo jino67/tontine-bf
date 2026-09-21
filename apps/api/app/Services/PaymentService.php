@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Fees\FeeEngine;
 use App\Services\Fees\FeeQuote;
 use App\Services\PayDunya\PayDunyaClient;
+use App\Services\Wallet\WalletService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +26,7 @@ use Illuminate\Support\Facades\Log;
  */
 class PaymentService
 {
-    public function __construct(private PayDunyaClient $client, private FeeEngine $fees) {}
+    public function __construct(private PayDunyaClient $client, private FeeEngine $fees, private WalletService $wallet) {}
 
     public function startForContribution(Contribution $contribution, User $payer): Payment
     {
@@ -114,6 +115,7 @@ class PaymentService
             $applied = match (true) {
                 $payable instanceof Contribution => $this->applyToContribution($payable, $payment),
                 $payable instanceof Cagnotte => $this->applyToCagnotte($payable, $payment),
+                $payable instanceof User => $this->wallet->applyDeposit($payable, $payment),
                 default => false,
             };
 
@@ -128,7 +130,7 @@ class PaymentService
         });
     }
 
-    public function start(Model $payable, User $payer, int $organizationId, FeeQuote $quote, string $description): Payment
+    public function start(Model $payable, User $payer, ?int $organizationId, FeeQuote $quote, string $description): Payment
     {
         $payment = Payment::create([
             'organization_id' => $organizationId,
@@ -162,7 +164,8 @@ class PaymentService
     /** Les frais ne sont inscrits qu'une fois l'argent réellement reçu. */
     private function chargeFee(Payment $payment): void
     {
-        if ($payment->fee_amount <= 0 || $payment->fee_operation === null) {
+        // Le dépôt inscrit ses frais lui-même, avec l'écriture qui crédite le solde.
+        if ($payment->fee_amount <= 0 || $payment->fee_operation === null || $payment->fee_operation === FeeOperation::Deposit) {
             return;
         }
 

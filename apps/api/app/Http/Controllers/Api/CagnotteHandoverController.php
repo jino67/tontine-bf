@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\CagnotteStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\WalletOperation;
 use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Concerns\AuthorizesOrganizationRoles;
 use App\Http\Controllers\Controller;
@@ -12,6 +13,7 @@ use App\Models\Cagnotte;
 use App\Models\Organization;
 use App\Services\Fees\CagnotteFees;
 use App\Services\PayoutService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +22,11 @@ class CagnotteHandoverController extends Controller
 {
     use AuthorizesOrganizationRoles;
 
-    public function __construct(private PayoutService $payouts, private CagnotteFees $fees) {}
+    public function __construct(
+        private PayoutService $payouts,
+        private CagnotteFees $fees,
+        private WalletService $wallet,
+    ) {}
 
     public function store(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
     {
@@ -51,6 +57,30 @@ class CagnotteHandoverController extends Controller
 
         if ($data['method'] === PaymentMethod::PayDunya->value) {
             $this->payouts->send($cagnotte, $organization->id, $request->user(), (int) $data['amount'], $data['phone'], $data['withdraw_mode'], $cagnotte->beneficiary_user_id);
+        } elseif ($data['method'] === PaymentMethod::Wallet->value) {
+            if ($cagnotte->beneficiary === null) {
+                throw new DomainRuleException('Le bénéficiaire de cette cagnotte n’est pas un membre : versez les fonds autrement.');
+            }
+
+            $this->wallet->creditFrom(
+                $cagnotte,
+                $cagnotte->beneficiary,
+                WalletOperation::Handover,
+                (int) $data['amount'],
+                related: $cagnotte,
+                description: "Fonds de {$cagnotte->title}",
+                organizationId: $organization->id,
+            );
+
+            $cagnotte->update([
+                'status' => CagnotteStatus::HandedOver,
+                'closed_at' => $cagnotte->closed_at ?? $cagnotte->ends_at,
+                'handover_amount' => $data['amount'],
+                'handover_method' => PaymentMethod::Wallet,
+                'handed_over_at' => now(),
+                'handover_recorded_by' => $request->user()->id,
+                'handover_confirmed_at' => now(),
+            ]);
         } else {
             $cagnotte->update([
                 'status' => CagnotteStatus::HandedOver,

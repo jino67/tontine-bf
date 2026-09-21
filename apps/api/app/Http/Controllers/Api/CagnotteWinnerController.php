@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\PaymentMethod;
+use App\Enums\WalletOperation;
 use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Concerns\AuthorizesOrganizationRoles;
 use App\Http\Controllers\Controller;
@@ -11,6 +12,7 @@ use App\Models\Cagnotte;
 use App\Models\CagnotteWinner;
 use App\Models\Organization;
 use App\Services\PayoutService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +21,7 @@ class CagnotteWinnerController extends Controller
 {
     use AuthorizesOrganizationRoles;
 
-    public function __construct(private PayoutService $payouts) {}
+    public function __construct(private PayoutService $payouts, private WalletService $wallet) {}
 
     public function payout(Request $request, Organization $organization, Cagnotte $cagnotte, CagnotteWinner $winner): CagnotteResource
     {
@@ -40,6 +42,24 @@ class CagnotteWinnerController extends Controller
 
         if ($data['method'] === PaymentMethod::PayDunya->value) {
             $this->payouts->send($winner, $organization->id, $request->user(), $winner->prize_amount, $data['phone'], $data['withdraw_mode'], $winner->user_id);
+        } elseif ($data['method'] === PaymentMethod::Wallet->value) {
+            // Le gain reste dans l'application : rien ne sort, donc rien n'est facturé.
+            $this->wallet->creditFrom(
+                $cagnotte,
+                $winner->user,
+                WalletOperation::Prize,
+                $winner->prize_amount,
+                related: $winner,
+                description: "Gain de {$cagnotte->title}",
+                organizationId: $organization->id,
+            );
+
+            $winner->update([
+                'paid_at' => now(),
+                'paid_method' => PaymentMethod::Wallet,
+                'paid_by' => $request->user()->id,
+                'confirmed_at' => now(),
+            ]);
         } else {
             $winner->update([
                 'paid_at' => now(),

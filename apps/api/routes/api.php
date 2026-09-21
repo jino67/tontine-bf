@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CagnotteHandoverController;
 use App\Http\Controllers\Api\CagnotteWinnerController;
 use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\CycleController;
+use App\Http\Controllers\Api\CyclePayoutController;
 use App\Http\Controllers\Api\DiscoverController;
 use App\Http\Controllers\Api\DrawController;
 use App\Http\Controllers\Api\FeeController;
@@ -26,6 +27,8 @@ use App\Http\Controllers\Api\SharingController;
 use App\Http\Controllers\Api\StartTontineController;
 use App\Http\Controllers\Api\TontineController;
 use App\Http\Controllers\Api\TontineMemberController;
+use App\Http\Controllers\Api\WalletController;
+use App\Http\Controllers\Api\WalletMoneyController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -64,6 +67,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('join-requests/{joinRequest}', [JoinRequestController::class, 'destroy']);
         Route::post('reports', [ReportController::class, 'store']);
 
+        // Portefeuille : solde, historique, transferts, et les deux portes de l'argent.
+        Route::get('wallet', [WalletController::class, 'show']);
+        Route::get('wallet/transactions', [WalletController::class, 'transactions']);
+        Route::post('wallet/transfer', [WalletController::class, 'transfer']);
+        Route::put('wallet/payout-phone', [WalletController::class, 'payoutPhone']);
+        Route::post('wallet/deposit', [WalletMoneyController::class, 'deposit']);
+        Route::post('wallet/withdraw', [WalletMoneyController::class, 'withdraw']);
+
         // scopeBindings : chaque ressource imbriquée est cherchée dans son parent,
         // une tontine ou une cagnotte d'une autre organisation répond donc 404.
         Route::prefix('orgs/{organization}')->middleware('org.member')->scopeBindings()->group(function () {
@@ -88,7 +99,10 @@ Route::prefix('v1')->group(function () {
             Route::put('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}', [ContributionController::class, 'update']);
             Route::post('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}/confirm', [ContributionController::class, 'confirm']);
             Route::post('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}/pay', [PaymentController::class, 'payContribution']);
+            Route::post('tontines/{tontine}/cycles/{cycle}/contributions/{contribution}/pay-with-balance', [PaymentController::class, 'payContributionFromBalance']);
+            Route::post('tontines/{tontine}/cycles/{cycle}/payout', CyclePayoutController::class);
             Route::post('cagnottes/{cagnotte}/pay', [PaymentController::class, 'payCagnotte']);
+            Route::post('cagnottes/{cagnotte}/pay-with-balance', [PaymentController::class, 'payCagnotteFromBalance']);
             Route::get('payments/{payment}', [PaymentController::class, 'show']);
 
             Route::get('tontines/{tontine}/draw', [DrawController::class, 'show']);
