@@ -54,6 +54,7 @@ class User extends Authenticatable
             'is_super_admin' => 'boolean',
             'payout_changed_at' => 'datetime',
             'wallet_verified_at' => 'datetime',
+            'blocked_at' => 'datetime',
         ];
     }
 

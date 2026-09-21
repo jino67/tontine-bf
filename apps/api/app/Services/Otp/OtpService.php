@@ -96,6 +96,13 @@ class OtpService
         $otp->update(['consumed_at' => now()]);
 
         $user = User::firstOrCreate(['phone' => $phone]);
+
+        // Un compte suspendu par le back-office ne se reconnecte pas.
+        if ($user->blocked_at !== null) {
+            throw ValidationException::withMessages([
+                'phone' => 'Ce compte est suspendu. Écrivez-nous pour en connaître la raison.',
+            ]);
+        }
         $pendingEmail = Cache::pull(self::pendingEmailKey($phone));
         $changes = [];
 
