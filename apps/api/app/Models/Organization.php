@@ -22,9 +22,10 @@ class Organization extends Model
     /** Lettre du chemin public : https://exemple.bf/o/ABCD2345 */
     public const SHARE_PATH = 'o';
 
-    protected $fillable = ['name', 'slug', 'plan', 'currency', 'timezone', 'settings', 'visibility', 'join_policy'];
+    protected $fillable = ['name', 'slug', 'kind', 'plan', 'currency', 'timezone', 'settings', 'visibility', 'join_policy'];
 
     protected $attributes = [
+        'kind' => 'standard',
         'plan' => 'gratuit',
         'visibility' => 'privee',
         'join_policy' => 'fermee',
@@ -69,6 +70,12 @@ class Organization extends Model
     public function cagnottes(): HasMany
     {
         return $this->hasMany(Cagnotte::class);
+    }
+
+    /** Espace personnel : ni invitable, ni listable, ni partageable. */
+    public function isPersonal(): bool
+    {
+        return $this->kind === 'personal';
     }
 
     public function payments(): HasMany

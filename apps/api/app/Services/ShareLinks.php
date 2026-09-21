@@ -43,7 +43,10 @@ class ShareLinks
 
         $cagnottes = Cagnotte::with('organization')->withTotals()->whereNull('hidden_at');
         if (($cagnotte = self::shared($cagnottes, $code)) !== null) {
-            return ['type' => 'cagnotte', 'data' => self::cagnotte($cagnotte) + self::viewer($viewer, $cagnotte->organization, null)];
+            // Une série récurrente renvoie toujours vers son édition ouverte.
+            $current = Cagnotte::whereKey($cagnotte->currentEdition()->id)->with('organization')->withTotals()->firstOrFail();
+
+            return ['type' => 'cagnotte', 'data' => self::cagnotte($current) + self::viewer($viewer, $current->organization, null)];
         }
 
         if (($organization = self::shared(Organization::withCount('memberships'), $code)) !== null) {
@@ -99,10 +102,23 @@ class ShareLinks
             'fee_percent' => $cagnotte->fee_percent,
             'platform_fee_bp' => $cagnotte->platform_fee_bp,
             'pot_amount' => $cagnotte->pot(),
+            'recurring' => $cagnotte->recurring,
+            'edition' => $cagnotte->edition,
             'contributions_count' => $cagnotte->contributions_count,
             'organization' => self::organizationName($cagnotte->organization),
-            'share_url' => $cagnotte->shareUrl(),
+            // Le lien de la série reste celui de la première édition.
+            'share_url' => $cagnotte->shareUrl() ?? static::seriesUrl($cagnotte),
         ];
+    }
+
+    /** Adresse partagée d'une édition qui n'a pas de code à elle : celui de sa série. */
+    private static function seriesUrl(Cagnotte $cagnotte): ?string
+    {
+        if ($cagnotte->series_id === null) {
+            return null;
+        }
+
+        return Cagnotte::find($cagnotte->series_id)?->shareUrl();
     }
 
     /** @return array<string, mixed> */

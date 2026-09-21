@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\Organization;
+use App\Services\CagnotteCycles;
 use App\Services\CagnottePrizeDraw;
 use App\Services\Fees\CagnotteFees;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ class CagnotteDrawController extends Controller
 {
     use AuthorizesOrganizationRoles;
 
-    public function __construct(private CagnotteFees $fees) {}
+    public function __construct(private CagnotteFees $fees, private CagnotteCycles $cycles) {}
 
     public function store(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
     {
@@ -111,6 +112,9 @@ class CagnotteDrawController extends Controller
             }
 
             $cagnotte->update(['status' => CagnotteStatus::Drawn, 'drawn_at' => now()]);
+
+            // Cagnotte récurrente : l'édition suivante s'ouvre aussitôt, l'ancienne reste intacte.
+            $this->cycles->relaunch($cagnotte);
         });
 
         return CagnotteResource::make($organization->cagnottes()->whereKey($cagnotte->id)->withDetail()->firstOrFail());

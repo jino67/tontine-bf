@@ -74,6 +74,14 @@ class PaymentController extends Controller
         return PaymentResource::make($payment)->response()->setStatusCode(201);
     }
 
+    /** Suivi d'un paiement par celui qui l'a lancé, y compris hors de toute organisation. */
+    public function mine(Request $request, Payment $payment): PaymentResource
+    {
+        abort_unless($payment->user_id === $request->user()->id, 403, 'Ce paiement ne vous concerne pas.');
+
+        return PaymentResource::make($this->refreshed($payment));
+    }
+
     /** Relit le statut auprès de PayDunya : utile au retour dans l'application, même sans notification. */
     public function show(Request $request, Organization $organization, Payment $payment): PaymentResource
     {
@@ -83,12 +91,16 @@ class PaymentController extends Controller
             'Ce paiement ne vous concerne pas.',
         );
 
+        return PaymentResource::make($this->refreshed($payment));
+    }
+
+    private function refreshed(Payment $payment): Payment
+    {
         try {
-            $payment = $this->payments->refresh($payment);
+            return $this->payments->refresh($payment);
         } catch (DomainRuleException) {
             // PayDunya injoignable : on renvoie le dernier statut connu, le téléphone réessaiera.
+            return $payment;
         }
-
-        return PaymentResource::make($payment);
     }
 }

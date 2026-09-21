@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\Organization;
+use App\Services\CagnotteCycles;
 use App\Services\Fees\CagnotteFees;
 use App\Services\PayoutService;
 use App\Services\Wallet\WalletService;
@@ -26,6 +27,7 @@ class CagnotteHandoverController extends Controller
         private PayoutService $payouts,
         private CagnotteFees $fees,
         private WalletService $wallet,
+        private CagnotteCycles $cycles,
     ) {}
 
     public function store(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
@@ -94,6 +96,7 @@ class CagnotteHandoverController extends Controller
         }
 
         $this->fees->chargePlatform($cagnotte, 'Part de la plateforme retenue à la remise des fonds.');
+        $this->cycles->relaunch($cagnotte);
 
         return CagnotteResource::make($organization->cagnottes()->whereKey($cagnotte->id)->withDetail()->firstOrFail());
     }

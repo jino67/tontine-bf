@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CagnotteContributionController;
 use App\Http\Controllers\Api\CagnotteController;
 use App\Http\Controllers\Api\CagnotteDrawController;
 use App\Http\Controllers\Api\CagnotteHandoverController;
+use App\Http\Controllers\Api\CagnotteTemplateController;
 use App\Http\Controllers\Api\CagnotteWinnerController;
 use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\CycleController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\MyContributionController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PayDunyaWebhookController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PublicCagnotteController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ShareLinkController;
 use App\Http\Controllers\Api\SharingController;
@@ -66,6 +68,14 @@ Route::prefix('v1')->group(function () {
         Route::post('join-requests', [JoinRequestController::class, 'store']);
         Route::delete('join-requests/{joinRequest}', [JoinRequestController::class, 'destroy']);
         Route::post('reports', [ReportController::class, 'store']);
+
+        // Cagnottes ouvertes à tous : participer est un paiement, pas une adhésion.
+        Route::get('cagnottes/{cagnotte}', [PublicCagnotteController::class, 'show']);
+        Route::post('cagnottes/{cagnotte}/pay', [PublicCagnotteController::class, 'pay']);
+        Route::post('cagnottes/{cagnotte}/pay-with-balance', [PublicCagnotteController::class, 'payWithBalance']);
+        Route::get('cagnotte-templates', CagnotteTemplateController::class);
+        // Suivi d'un paiement par celui qui l'a lancé, même hors de son organisation.
+        Route::get('payments/{payment}', [PaymentController::class, 'mine']);
 
         // Portefeuille : solde, historique, transferts, et les deux portes de l'argent.
         Route::get('wallet', [WalletController::class, 'show']);

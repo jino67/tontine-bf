@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrganizationResource;
 use App\Models\Organization;
+use App\Services\PersonalOrganization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -15,6 +16,9 @@ class OrganizationController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        // Personne n'est obligé de rejoindre un groupement : sans organisation, on reçoit la sienne.
+        PersonalOrganization::ensureFor($request->user());
+
         return OrganizationResource::collection(
             $request->user()->organizations()->orderBy('name')->get()
         );

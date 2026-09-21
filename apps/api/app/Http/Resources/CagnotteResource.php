@@ -32,6 +32,9 @@ class CagnotteResource extends JsonResource
             'status' => $status->value,
             'accepts_contributions' => $status === CagnotteStatus::Open,
             'visibility' => $this->visibility->value,
+            'recurring' => (bool) $this->recurring,
+            'edition' => (int) $this->edition,
+            'series_id' => $this->resource->seriesId(),
             'share_url' => $this->resource->shareUrl(),
             'collected_amount' => $this->resource->collectedAmount(),
             'contributions_count' => $this->whenCounted('contributions'),
@@ -52,9 +55,7 @@ class CagnotteResource extends JsonResource
             'online_collected_amount' => $this->resource->onlineCollected(),
             'pot_amount' => $this->resource->pot(),
             'tickets_count' => $prize ? (int) ($this->tickets_total ?? $this->resource->contributions()->sum('tickets')) : 0,
-            'my_tickets' => $this->resource->relationLoaded('contributions')
-                ? (int) $this->contributions->where('user_id', $request->user()?->id)->sum('tickets')
-                : null,
+            'my_tickets' => $this->myTickets($request->user()?->id),
             // Gains potentiels calculés sur la somme réunie, avec les rangs attribués visibles de tous.
             'prizes' => $prize ? $this->prizes() : [],
             'draw' => $this->draw_seed_hash === null ? null : [
@@ -68,6 +69,18 @@ class CagnotteResource extends JsonResource
             'contributions' => CagnotteContributionResource::collection($this->whenLoaded('contributions')),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    /** Les tickets du visiteur, même quand la liste des participations ne lui est pas montrée. */
+    private function myTickets(?int $userId): ?int
+    {
+        if ($userId === null) {
+            return null;
+        }
+
+        return $this->resource->relationLoaded('contributions')
+            ? (int) $this->contributions->where('user_id', $userId)->sum('tickets')
+            : (int) $this->resource->contributions()->where('user_id', $userId)->sum('tickets');
     }
 
     private function prizes(): array

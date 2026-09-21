@@ -37,11 +37,14 @@ class Cagnotte extends Model
         'handover_amount', 'handover_method', 'handover_reference', 'handed_over_at', 'handover_recorded_by',
         'handover_confirmed_at', 'ticket_price', 'winners_count', 'prize_split', 'fee_percent', 'platform_fee_bp',
         'draw_seed', 'draw_seed_hash', 'draw_tickets', 'draw_reveal_after', 'drawn_at', 'visibility',
+        'recurring', 'series_id', 'edition', 'template_id',
     ];
 
     protected $hidden = ['draw_seed'];
 
-    protected $attributes = ['mode' => 'solidaire', 'status' => 'ouverte', 'min_amount' => 100, 'fee_percent' => 0, 'visibility' => 'privee'];
+    // Une cagnotte est visible de tous par défaut : c'est la demande, et le tirage vérifiable
+    // vaut d'autant plus qu'il y a de témoins. Un responsable peut toujours la refermer.
+    protected $attributes = ['mode' => 'solidaire', 'status' => 'ouverte', 'min_amount' => 100, 'fee_percent' => 0, 'visibility' => 'publique'];
 
     protected function casts(): array
     {
@@ -60,6 +63,8 @@ class Cagnotte extends Model
             'prize_split' => 'array',
             'fee_percent' => 'integer',
             'platform_fee_bp' => 'integer',
+            'recurring' => 'boolean',
+            'edition' => 'integer',
             'draw_seed' => 'encrypted',
             'draw_tickets' => 'array',
             'opens_at' => 'datetime',
@@ -91,6 +96,17 @@ class Cagnotte extends Model
     public function contributions(): HasMany
     {
         return $this->hasMany(CagnotteContribution::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(CagnotteTemplate::class, 'template_id');
+    }
+
+    /** Toutes les éditions de la série, la première comprise. */
+    public function editions(): HasMany
+    {
+        return $this->hasMany(Cagnotte::class, 'series_id', 'id');
     }
 
     public function winners(): HasMany
@@ -126,6 +142,28 @@ class Cagnotte extends Model
             'winners.user',
             'winners.latestPayout',
         ]);
+    }
+
+    /** Identifiant de la série : la première édition la porte elle-même. */
+    public function seriesId(): int
+    {
+        return (int) ($this->series_id ?? $this->id);
+    }
+
+    /**
+     * Édition en cours de la série. Un lien partagé reste collé à la première édition :
+     * il doit toujours mener à celle qui est ouverte aujourd'hui.
+     */
+    public function currentEdition(): self
+    {
+        if (! $this->recurring) {
+            return $this;
+        }
+
+        return static::where(fn ($query) => $query->where('series_id', $this->seriesId())->orWhere('id', $this->seriesId()))
+            ->orderByDesc('edition')
+            ->orderByDesc('id')
+            ->first() ?? $this;
     }
 
     public function isPrize(): bool

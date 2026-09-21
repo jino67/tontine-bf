@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Enums\CagnotteDuration;
 use App\Enums\CagnotteMode;
 use App\Enums\CagnotteStatus;
+use App\Enums\Visibility;
 use App\Exceptions\DomainRuleException;
 use App\Http\Controllers\Concerns\AuthorizesOrganizationRoles;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
+use App\Models\CagnotteTemplate;
 use App\Models\Organization;
 use App\Services\CagnottePrizeDraw;
 use App\Services\Fees\CagnotteFees;
@@ -38,6 +40,8 @@ class CagnotteController extends Controller
     {
         $this->ensureCanManage($request);
 
+        $this->applyTemplate($request);
+
         $duration = is_string($request->input('duration')) ? CagnotteDuration::tryFrom($request->input('duration')) : null;
         $mode = is_string($request->input('mode')) ? CagnotteMode::tryFrom($request->input('mode')) : CagnotteMode::Solidarity;
         $prize = $mode === CagnotteMode::Prize;
@@ -58,6 +62,10 @@ class CagnotteController extends Controller
             'prize_split' => ['nullable', 'array'],
             'prize_split.*' => ['numeric', 'gt:0'],
             'fee_percent' => ['nullable', 'integer', 'min:0', 'max:30'],
+            'visibility' => ['nullable', Rule::enum(Visibility::class)],
+            // Une cagnotte récurrente repart pour une nouvelle édition dès que le tirage est révélé.
+            'recurring' => ['nullable', 'boolean'],
+            'template_id' => ['nullable', 'integer', Rule::exists('cagnotte_templates', 'id')->where('active', true)],
         ]);
 
         $prizeFields = $prize ? $this->prizeFields($data) : [];
@@ -77,6 +85,9 @@ class CagnotteController extends Controller
             'opens_at' => $opensAt,
             'ends_at' => $duration->endsAt($opensAt) ?? Carbon::parse($data['ends_at']),
             'platform_fee_bp' => $this->fees->rateBpFor($mode, $organization->id),
+            'visibility' => $data['visibility'] ?? Visibility::Listed,
+            'recurring' => (bool) ($data['recurring'] ?? false),
+            'template_id' => $data['template_id'] ?? null,
             ...$prizeFields,
         ]);
 
@@ -100,6 +111,25 @@ class CagnotteController extends Controller
         $cagnotte->update(['status' => CagnotteStatus::Closed, 'closed_at' => now()]);
 
         return CagnotteResource::make($this->detail($organization, $cagnotte));
+    }
+
+    /** Un modèle ne fait que remplir les champs laissés vides : ce qui est saisi l'emporte. */
+    private function applyTemplate(Request $request): void
+    {
+        $template = CagnotteTemplate::query()
+            ->usable()
+            ->whereKey($request->integer('template_id'))
+            ->first();
+
+        if ($template === null) {
+            return;
+        }
+
+        foreach ($template->attributesForCagnotte() as $field => $value) {
+            if (! $request->filled($field)) {
+                $request->merge([$field => $value instanceof \BackedEnum ? $value->value : $value]);
+            }
+        }
     }
 
     private function prizeFields(array $data): array
