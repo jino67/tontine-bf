@@ -27,10 +27,24 @@ final class CagnottePrizeDraw
         return count($split) === $winners && $split !== [] && min($split) > 0 && abs(array_sum($split) - 100) < 0.01;
     }
 
-    /** Somme à partager entre les gagnants, après la commission éventuelle de l'organisation. */
-    public static function pot(int $collected, int $feePercent): int
+    /**
+     * Somme à partager entre les gagnants, après la part de la plateforme
+     * et la commission éventuelle de l'organisation.
+     */
+    public static function pot(int $collected, int $feePercent, int $platformFee = 0): int
     {
-        return $collected - intdiv($collected * $feePercent, 100);
+        return max(0, $collected - $platformFee - intdiv($collected * $feePercent, 100));
+    }
+
+    /**
+     * Part de la plateforme, arrondie au multiple de 5 FCFA supérieur comme tous les frais.
+     *
+     * Elle ne porte que sur l'argent entré par l'application : ce qui a été remis en espèces
+     * au trésorier n'est jamais passé par la plateforme, et ne lui coûte rien.
+     */
+    public static function platformFee(int $onlineCollected, int $rateBp): int
+    {
+        return intdiv(intdiv($onlineCollected * $rateBp, 10000) + 4, 5) * 5;
     }
 
     /**

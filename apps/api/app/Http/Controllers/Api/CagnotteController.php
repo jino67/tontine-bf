@@ -12,6 +12,7 @@ use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\Organization;
 use App\Services\CagnottePrizeDraw;
+use App\Services\Fees\CagnotteFees;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -22,6 +23,8 @@ use Illuminate\Validation\ValidationException;
 class CagnotteController extends Controller
 {
     use AuthorizesOrganizationRoles;
+
+    public function __construct(private CagnotteFees $fees) {}
 
     /** Toutes les cagnottes de l'organisation sont visibles par tous ses membres. */
     public function index(Organization $organization): AnonymousResourceCollection
@@ -73,6 +76,7 @@ class CagnotteController extends Controller
             'beneficiary_name' => $prize || $memberBeneficiary !== null ? null : $data['beneficiary_name'],
             'opens_at' => $opensAt,
             'ends_at' => $duration->endsAt($opensAt) ?? Carbon::parse($data['ends_at']),
+            'platform_fee_bp' => $this->fees->rateBpFor($mode, $organization->id),
             ...$prizeFields,
         ]);
 

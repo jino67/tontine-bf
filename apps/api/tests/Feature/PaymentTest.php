@@ -43,9 +43,10 @@ it('laisse un membre payer sa cotisation en ligne et la confirme dès que PayDun
 
     Http::fake([
         '*/sandbox-api/v1/checkout-invoice/create' => Http::response(invoiceResponse('test_awa')),
+        // 5 000 de cotisation et 165 de frais de service : c'est la somme qui est facturée.
         '*/sandbox-api/v1/checkout-invoice/confirm/test_awa' => Http::sequence()
-            ->push(confirmResponse('test_awa', 'pending', 5000))
-            ->push(confirmResponse('test_awa', 'completed', '5000')),
+            ->push(confirmResponse('test_awa', 'pending', 5165))
+            ->push(confirmResponse('test_awa', 'completed', '5165')),
     ]);
 
     actingAsUser($binta);
@@ -54,14 +55,16 @@ it('laisse un membre payer sa cotisation en ligne et la confirme dès que PayDun
     actingAsUser($awa);
     $paymentId = $this->postJson(contributionUrl($contribution).'/pay')
         ->assertCreated()
-        ->assertJsonPath('data.amount', 5000)
+        ->assertJsonPath('data.amount', 5165)
+        ->assertJsonPath('data.base_amount', 5000)
+        ->assertJsonPath('data.fee_amount', 165)
         ->assertJsonPath('data.purpose', 'cotisation')
         ->assertJsonPath('data.checkout_url', 'https://paydunya.com/sandbox-checkout/invoice/test_awa')
         ->json('data.id');
 
     Http::assertSent(fn ($request) => str_ends_with($request->url(), 'checkout-invoice/create')
         && $request->hasHeader('PAYDUNYA-MASTER-KEY', 'cle-principale')
-        && $request['invoice']['total_amount'] === 5000
+        && $request['invoice']['total_amount'] === 5165
         && $request['custom_data']['payment_id'] === $paymentId
         && str_ends_with($request['actions']['callback_url'], '/api/v1/payments/paydunya/ipn'));
 
@@ -78,6 +81,7 @@ it('laisse un membre payer sa cotisation en ligne et la confirme dès que PayDun
     $this->post('/api/v1/payments/paydunya/ipn', $ipn)->assertOk();
     $this->post('/api/v1/payments/paydunya/ipn', $ipn)->assertOk();
 
+    // Seuls les 5 000 de cotisation entrent dans le tour : les frais n'y figurent pas.
     expect($contribution->refresh())
         ->amount_paid->toBe(5000)
         ->method->toBe(PaymentMethod::PayDunya)

@@ -47,6 +47,10 @@ class CagnotteResource extends JsonResource
             'ticket_price' => $this->ticket_price,
             'winners_count' => $this->winners_count,
             'fee_percent' => $this->fee_percent,
+            'platform_fee_bp' => $this->platform_fee_bp,
+            'platform_fee_amount' => $this->resource->platformFee(),
+            'online_collected_amount' => $this->resource->onlineCollected(),
+            'pot_amount' => $this->resource->pot(),
             'tickets_count' => $prize ? (int) ($this->tickets_total ?? $this->resource->contributions()->sum('tickets')) : 0,
             'my_tickets' => $this->resource->relationLoaded('contributions')
                 ? (int) $this->contributions->where('user_id', $request->user()?->id)->sum('tickets')
@@ -69,10 +73,7 @@ class CagnotteResource extends JsonResource
     private function prizes(): array
     {
         $split = $this->prize_split ?? [];
-        $amounts = CagnottePrizeDraw::prizeAmounts(
-            CagnottePrizeDraw::pot($this->resource->collectedAmount(), (int) $this->fee_percent),
-            $split,
-        );
+        $amounts = CagnottePrizeDraw::prizeAmounts($this->resource->pot(), $split);
 
         $prizes = [];
         foreach (array_values($split) as $index => $percent) {

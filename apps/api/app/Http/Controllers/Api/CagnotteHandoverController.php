@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\Organization;
+use App\Services\Fees\CagnotteFees;
 use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,7 +20,7 @@ class CagnotteHandoverController extends Controller
 {
     use AuthorizesOrganizationRoles;
 
-    public function __construct(private PayoutService $payouts) {}
+    public function __construct(private PayoutService $payouts, private CagnotteFees $fees) {}
 
     public function store(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
     {
@@ -40,7 +41,8 @@ class CagnotteHandoverController extends Controller
         PayoutService::ensureNoneInProgress($cagnotte);
 
         $data = $request->validate([
-            'amount' => ['required', 'integer', 'min:1', 'max:'.max(1, $cagnotte->collectedAmount())],
+            // Le maximum remis est le pot : la part de la plateforme en est déjà retirée.
+            'amount' => ['required', 'integer', 'min:1', 'max:'.max(1, $cagnotte->pot())],
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:100'],
             'withdraw_mode' => ['required_if:method,paydunya', 'nullable', Rule::in(PayoutService::WITHDRAW_MODES)],
@@ -60,6 +62,8 @@ class CagnotteHandoverController extends Controller
                 'handover_recorded_by' => $request->user()->id,
             ]);
         }
+
+        $this->fees->chargePlatform($cagnotte, 'Part de la plateforme retenue à la remise des fonds.');
 
         return CagnotteResource::make($organization->cagnottes()->whereKey($cagnotte->id)->withDetail()->firstOrFail());
     }

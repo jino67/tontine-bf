@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\CycleController;
 use App\Http\Controllers\Api\DiscoverController;
 use App\Http\Controllers\Api\DrawController;
+use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MeController;
@@ -42,11 +43,15 @@ Route::prefix('v1')->group(function () {
     // Fiche publique d'un lien partagé, lisible sans connexion.
     Route::get('links/{code}', ShareLinkController::class)->middleware('throttle:60,1');
 
+    // Grille des frais : personne ne doit créer un compte pour savoir ce que l'application prélève.
+    Route::get('fees', [FeeController::class, 'index'])->middleware('throttle:60,1');
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [OtpController::class, 'logout']);
         Route::get('me', [MeController::class, 'show']);
         Route::patch('me', [MeController::class, 'update']);
         Route::get('me/contributions', MyContributionController::class);
+        Route::post('fees/simulate', [FeeController::class, 'simulate']);
 
         Route::get('orgs', [OrganizationController::class, 'index']);
         Route::post('orgs', [OrganizationController::class, 'store']);

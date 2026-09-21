@@ -95,7 +95,7 @@ class CagnotteContributionController extends Controller
     {
         return [
             'amount' => ['required', 'integer', 'min:'.$cagnotte->min_amount, 'max:100000000'],
-            'method' => ['required', Rule::enum(PaymentMethod::class)->except(PaymentMethod::PayDunya)],
+            'method' => ['required', Rule::enum(PaymentMethod::class)->except([PaymentMethod::PayDunya, PaymentMethod::Wallet])],
             'reference' => ['nullable', 'string', 'max:100'],
             'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
         ];

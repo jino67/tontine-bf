@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\CagnotteStatus;
+use App\Enums\FeeOperation;
+use App\Enums\FeePayer;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Exceptions\DomainRuleException;
@@ -10,6 +12,8 @@ use App\Models\Cagnotte;
 use App\Models\Contribution;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Fees\FeeEngine;
+use App\Services\Fees\FeeQuote;
 use App\Services\PayDunya\PayDunyaClient;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +25,7 @@ use Illuminate\Support\Facades\Log;
  */
 class PaymentService
 {
-    public function __construct(private PayDunyaClient $client) {}
+    public function __construct(private PayDunyaClient $client, private FeeEngine $fees) {}
 
     public function startForContribution(Contribution $contribution, User $payer): Payment
     {
@@ -32,12 +36,17 @@ class PaymentService
         }
 
         $tontine = $contribution->cycle->tontine;
+        $quote = $this->fees->quote(
+            FeeOperation::ContributionOnline,
+            $contribution->amount_due - $contribution->amount_paid,
+            $tontine->organization_id,
+        );
 
         return $this->start(
             $contribution,
             $payer,
             $tontine->organization_id,
-            $contribution->amount_due - $contribution->amount_paid,
+            $quote,
             "Cotisation {$tontine->name}, tour {$contribution->cycle->number}",
         );
     }
@@ -48,7 +57,11 @@ class PaymentService
             throw new DomainRuleException('Cette cagnotte est clôturée, elle n’accepte plus de participation.');
         }
 
-        return $this->start($cagnotte, $payer, $cagnotte->organization_id, $amount, "Participation à {$cagnotte->title}");
+        // Le ticket est encaissé au franc près : la part de la plateforme est retenue sur le pot
+        // au moment du partage, jamais ajoutée au prix payé par le participant.
+        $quote = new FeeQuote(FeeOperation::PrizePool, $amount, 0, FeePayer::Beneficiary);
+
+        return $this->start($cagnotte, $payer, $cagnotte->organization_id, $quote, "Participation à {$cagnotte->title}");
     }
 
     public function refresh(Payment $payment): Payment
@@ -95,6 +108,8 @@ class PaymentService
                 'payload' => $invoice,
             ]);
 
+            $this->chargeFee($payment);
+
             $payable = $payment->payable;
             $applied = match (true) {
                 $payable instanceof Contribution => $this->applyToContribution($payable, $payment),
@@ -113,18 +128,22 @@ class PaymentService
         });
     }
 
-    private function start(Model $payable, User $payer, int $organizationId, int $amount, string $description): Payment
+    public function start(Model $payable, User $payer, int $organizationId, FeeQuote $quote, string $description): Payment
     {
         $payment = Payment::create([
             'organization_id' => $organizationId,
             'user_id' => $payer->id,
             'payable_type' => $payable->getMorphClass(),
             'payable_id' => $payable->getKey(),
-            'amount' => $amount,
+            'amount' => $quote->total(),
+            'base_amount' => $quote->base,
+            'fee_amount' => $quote->fee,
+            'fee_operation' => $quote->operation,
+            'fee_rule_id' => $quote->rule?->id,
         ]);
 
         try {
-            $invoice = $this->client->createInvoice($amount, $description, ['payment_id' => $payment->id], [
+            $invoice = $this->client->createInvoice($payment->amount, $description, ['payment_id' => $payment->id], [
                 'return_url' => route('payments.return', ['paiement' => $payment->id]),
                 'cancel_url' => route('payments.return', ['paiement' => $payment->id, 'annule' => 1]),
                 'callback_url' => route('payments.paydunya.ipn'),
@@ -140,6 +159,27 @@ class PaymentService
         return $payment;
     }
 
+    /** Les frais ne sont inscrits qu'une fois l'argent réellement reçu. */
+    private function chargeFee(Payment $payment): void
+    {
+        if ($payment->fee_amount <= 0 || $payment->fee_operation === null) {
+            return;
+        }
+
+        $this->fees->charge(
+            new FeeQuote(
+                operation: $payment->fee_operation,
+                base: $payment->base_amount,
+                fee: $payment->fee_amount,
+                payer: FeePayer::Payer,
+                rule: $payment->feeRule,
+            ),
+            $payment,
+            $payment->user_id,
+            $payment->organization_id,
+        );
+    }
+
     /** Le membre a payé lui-même par PayDunya : la cotisation est confirmée dès qu'elle est complète. */
     private function applyToContribution(Contribution $contribution, Payment $payment): bool
     {
@@ -149,7 +189,8 @@ class PaymentService
             return false;
         }
 
-        $paid = min($contribution->amount_due, $contribution->amount_paid + $payment->amount);
+        // Seule la cotisation elle-même est affectée : les frais de service n'entrent pas dans le tour.
+        $paid = min($contribution->amount_due, $contribution->amount_paid + $payment->base_amount);
 
         $contribution->update([
             'amount_paid' => $paid,
@@ -177,8 +218,8 @@ class PaymentService
         $cagnotte->contributions()->create([
             'organization_id' => $cagnotte->organization_id,
             'user_id' => $payment->user_id,
-            'amount' => $payment->amount,
-            'tickets' => $cagnotte->ticketsFor($payment->amount),
+            'amount' => $payment->base_amount,
+            'tickets' => $cagnotte->ticketsFor($payment->base_amount),
             'method' => PaymentMethod::PayDunya,
             'reference' => $payment->token,
             'paid_at' => now(),

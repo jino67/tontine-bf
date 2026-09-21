@@ -8,6 +8,7 @@ use App\Enums\CagnotteStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\Visibility;
 use App\Models\Concerns\HasShareCode;
+use App\Services\CagnottePrizeDraw;
 use Database\Factories\CagnotteFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,7 +35,7 @@ class Cagnotte extends Model
         'organization_id', 'created_by', 'mode', 'title', 'description', 'duration', 'target_amount', 'min_amount',
         'beneficiary_user_id', 'beneficiary_name', 'opens_at', 'ends_at', 'status', 'closed_at',
         'handover_amount', 'handover_method', 'handover_reference', 'handed_over_at', 'handover_recorded_by',
-        'handover_confirmed_at', 'ticket_price', 'winners_count', 'prize_split', 'fee_percent',
+        'handover_confirmed_at', 'ticket_price', 'winners_count', 'prize_split', 'fee_percent', 'platform_fee_bp',
         'draw_seed', 'draw_seed_hash', 'draw_tickets', 'draw_reveal_after', 'drawn_at', 'visibility',
     ];
 
@@ -58,6 +59,7 @@ class Cagnotte extends Model
             'winners_count' => 'integer',
             'prize_split' => 'array',
             'fee_percent' => 'integer',
+            'platform_fee_bp' => 'integer',
             'draw_seed' => 'encrypted',
             'draw_tickets' => 'array',
             'opens_at' => 'datetime',
@@ -106,6 +108,10 @@ class Cagnotte extends Model
     {
         $query->withSum('contributions as collected_amount', 'amount')
             ->withSum('contributions as tickets_total', 'tickets')
+            ->withSum([
+                'contributions as online_collected' => fn ($contributions) => $contributions
+                    ->whereIn('method', [PaymentMethod::PayDunya->value, PaymentMethod::Wallet->value]),
+            ], 'amount')
             ->withCount('contributions');
     }
 
@@ -143,6 +149,29 @@ class Cagnotte extends Model
     public function collectedAmount(): int
     {
         return (int) ($this->collected_amount ?? $this->contributions()->sum('amount'));
+    }
+
+    /** Somme entrée par l'application : la seule base des frais de service. */
+    public function onlineCollected(): int
+    {
+        return (int) ($this->online_collected ?? $this->contributions()
+            ->whereIn('method', [PaymentMethod::PayDunya->value, PaymentMethod::Wallet->value])
+            ->sum('amount'));
+    }
+
+    /**
+     * Part de la plateforme. Le taux est figé à la création de la cagnotte : le pot reste
+     * ainsi recalculable à l'identique par l'application, des mois plus tard.
+     */
+    public function platformFee(): int
+    {
+        return CagnottePrizeDraw::platformFee($this->onlineCollected(), (int) $this->platform_fee_bp);
+    }
+
+    /** Ce qui est partagé entre les gagnants, ou remis au bénéficiaire. */
+    public function pot(): int
+    {
+        return CagnottePrizeDraw::pot($this->collectedAmount(), (int) $this->fee_percent, $this->platformFee());
     }
 
     public function ticketsFor(int $amount): int

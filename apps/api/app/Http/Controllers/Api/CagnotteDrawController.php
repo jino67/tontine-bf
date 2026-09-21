@@ -10,6 +10,7 @@ use App\Http\Resources\CagnotteResource;
 use App\Models\Cagnotte;
 use App\Models\Organization;
 use App\Services\CagnottePrizeDraw;
+use App\Services\Fees\CagnotteFees;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 class CagnotteDrawController extends Controller
 {
     use AuthorizesOrganizationRoles;
+
+    public function __construct(private CagnotteFees $fees) {}
 
     public function store(Request $request, Organization $organization, Cagnotte $cagnotte): CagnotteResource
     {
@@ -91,10 +94,12 @@ class CagnotteDrawController extends Controller
                 $cagnotte->winners_count,
             );
             $amounts = CagnottePrizeDraw::awardedAmounts(
-                CagnottePrizeDraw::pot($cagnotte->collectedAmount(), $cagnotte->fee_percent),
+                $cagnotte->pot(),
                 $cagnotte->prize_split ?? [],
                 array_column($winners, 'rank'),
             );
+
+            $this->fees->chargePlatform($cagnotte, 'Part de la plateforme retenue sur le pot avant le partage.');
 
             foreach ($winners as $winner) {
                 $cagnotte->winners()->create([

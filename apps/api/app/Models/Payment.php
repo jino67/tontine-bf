@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FeeOperation;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class Payment extends Model
 {
     protected $fillable = [
-        'organization_id', 'user_id', 'payable_type', 'payable_id', 'amount', 'provider', 'token', 'checkout_url',
+        'organization_id', 'user_id', 'payable_type', 'payable_id', 'amount', 'base_amount', 'fee_amount',
+        'fee_operation', 'fee_rule_id', 'provider', 'token', 'checkout_url',
         'status', 'receipt_url', 'failure_reason', 'payload', 'paid_at', 'applied_at',
     ];
 
@@ -24,6 +26,9 @@ class Payment extends Model
         return [
             'user_id' => 'integer',
             'amount' => 'integer',
+            'base_amount' => 'integer',
+            'fee_amount' => 'integer',
+            'fee_operation' => FeeOperation::class,
             'status' => PaymentStatus::class,
             'payload' => 'array',
             'paid_at' => 'datetime',
@@ -39,6 +44,11 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function feeRule(): BelongsTo
+    {
+        return $this->belongsTo(FeeRule::class);
     }
 
     public function organization(): BelongsTo

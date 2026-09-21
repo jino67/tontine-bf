@@ -15,7 +15,10 @@ class PaymentResource extends JsonResource
             'id' => $this->id,
             'purpose' => $this->payable_type === (new Contribution)->getMorphClass() ? 'cotisation' : 'cagnotte',
             'payable_id' => $this->payable_id,
+            // amount est ce que le membre débourse : la base et les frais de service réunis.
             'amount' => $this->amount,
+            'base_amount' => $this->base_amount,
+            'fee_amount' => $this->fee_amount,
             'status' => $this->status->value,
             'checkout_url' => $this->status === PaymentStatus::Pending ? $this->checkout_url : null,
             'receipt_url' => $this->receipt_url,

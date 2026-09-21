@@ -41,7 +41,7 @@ class ShareLinks
             return ['type' => 'tontine', 'data' => self::tontine($tontine) + self::viewer($viewer, $tontine->organization, $tontine)];
         }
 
-        $cagnottes = Cagnotte::with('organization')->withCount('contributions')->whereNull('hidden_at');
+        $cagnottes = Cagnotte::with('organization')->withTotals()->whereNull('hidden_at');
         if (($cagnotte = self::shared($cagnottes, $code)) !== null) {
             return ['type' => 'cagnotte', 'data' => self::cagnotte($cagnotte) + self::viewer($viewer, $cagnotte->organization, null)];
         }
@@ -97,6 +97,8 @@ class ShareLinks
             'ticket_price' => $cagnotte->ticket_price,
             'winners_count' => $cagnotte->winners_count,
             'fee_percent' => $cagnotte->fee_percent,
+            'platform_fee_bp' => $cagnotte->platform_fee_bp,
+            'pot_amount' => $cagnotte->pot(),
             'contributions_count' => $cagnotte->contributions_count,
             'organization' => self::organizationName($cagnotte->organization),
             'share_url' => $cagnotte->shareUrl(),

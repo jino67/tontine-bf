@@ -62,7 +62,7 @@ class DiscoverController extends Controller
     {
         $cagnottes = Cagnotte::query()
             ->with('organization')
-            ->withCount('contributions')
+            ->withTotals()
             ->where('visibility', Visibility::Listed)
             ->whereNull('hidden_at')
             ->where('status', CagnotteStatus::Open)

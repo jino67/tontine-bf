@@ -10,6 +10,7 @@ use App\Models\Cagnotte;
 use App\Models\CagnotteWinner;
 use App\Models\Payout;
 use App\Models\User;
+use App\Services\Fees\CagnotteFees;
 use App\Services\PayDunya\PayDunyaClient;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class PayoutService
         'orange-money-mali', 'mtn-benin', 'moov-benin', 't-money-togo', 'moov-togo',
     ];
 
-    public function __construct(private PayDunyaClient $client) {}
+    public function __construct(private PayDunyaClient $client, private CagnotteFees $cagnotteFees) {}
 
     public static function ensureNoneInProgress(Model $payable): void
     {
@@ -131,6 +132,8 @@ class PayoutService
                     'handed_over_at' => now(),
                     'handover_recorded_by' => $payout->initiated_by,
                 ]);
+
+                $this->cagnotteFees->chargePlatform($payable, 'Part de la plateforme retenue à la remise des fonds.');
             } else {
                 Log::warning('PayDunya : remise réussie sur un élément déjà marqué remis', ['payout' => $payout->id]);
             }
