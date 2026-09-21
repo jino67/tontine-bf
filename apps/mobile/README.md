@@ -45,6 +45,7 @@ L'ouverture directe, sans passer par le navigateur, demande en plus une clé de 
 | `lib/features/tontines` | Liste, création, détail, tours, paiements, tirage vérifiable avec tours attribués |
 | `lib/features/cagnottes` | Cagnottes solidaires et à gagnants : compte à rebours, participations, tickets, gains, tirage vérifiable, remises |
 | `lib/features/sharing` | Liens de partage, QR code, ouverture d'un lien reçu |
+| `lib/features/discover` | Annuaire public, demandes d'adhésion, signalement |
 | `lib/features/profile` | Profil, aide, guide, confidentialité, à propos |
 
 Aucune donnée n'est inventée : tout ce qui concerne les tontines, les membres et les cotisations vient de l'API.

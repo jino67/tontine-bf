@@ -61,6 +61,11 @@ class Organization extends Model
         return $this->hasMany(Invitation::class);
     }
 
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(JoinRequest::class);
+    }
+
     public function cagnottes(): HasMany
     {
         return $this->hasMany(Cagnotte::class);

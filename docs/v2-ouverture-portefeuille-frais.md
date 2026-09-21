@@ -385,11 +385,11 @@ L'ouverture au public élargit ce qui est visible. Règle simple : aucun numéro
 | Lot | Contenu | Dépendances | Estimation |
 |---|---|---|---|
 | **L1. Visibilité et liens** ✅ livré | `visibility` et `join_policy`, codes de partage, fiche publique sans donnée personnelle, page web de repli, App Links, QR, partage WhatsApp, lien accepté à la place du code | aucune | fait |
-| **L2. Adhésion** | `join_requests`, annuaire, recherche, gestion des membres d'une tontine, signalement | L1 | 1 semaine |
+| **L2. Adhésion** ✅ livré | `join_requests`, annuaire public avec recherche, demande d'adhésion et approbation, adhésion libre, signalement qui masque après trois alertes | L1 | fait |
 | **L3. Moteur de frais** | `fee_rules`, `fee_charges`, calcul, affichage avant confirmation, reçus, page des frais | aucune | 1 semaine |
 | **L4. Portefeuille, socle** | comptes, écritures, historique, paiement d'une cotisation depuis le solde, transferts internes | L3 | 1 à 2 semaines |
 | **L5. Portefeuille, entrées et sorties** | dépôt (désactivable), retrait, plafonds, vérification du numéro, réconciliation | L4, décision 4.1 | 1 semaine |
-| **L6. Modération et confiance** | back-office des signalements, historique du créateur, limites des tontines publiques | L2 | 1 semaine |
+| **L6. Modération et confiance** | back-office des signalements (la file existe déjà en base), historique du créateur, limites des tontines publiques | L2 | 1 semaine |
 | **L7. Notifications et relances** | voir section 5 bis | L3 pour les montants, L2 pour les demandes | 1 à 2 semaines |
 
 L1 à L3 peuvent être livrés sans trancher la question réglementaire. L4 et L5 attendent la décision.

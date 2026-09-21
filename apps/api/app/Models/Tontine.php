@@ -48,6 +48,7 @@ class Tontine extends Model
             'max_members' => 'integer',
             'starts_on' => 'immutable_date',
             'started_at' => 'datetime',
+            'hidden_at' => 'datetime',
         ];
     }
 

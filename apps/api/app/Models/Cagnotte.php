@@ -67,6 +67,7 @@ class Cagnotte extends Model
             'handover_confirmed_at' => 'datetime',
             'draw_reveal_after' => 'datetime',
             'drawn_at' => 'datetime',
+            'hidden_at' => 'datetime',
         ];
     }
 

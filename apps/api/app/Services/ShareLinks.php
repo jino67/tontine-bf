@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\JoinRequestStatus;
 use App\Enums\Visibility;
 use App\Models\Cagnotte;
 use App\Models\Invitation;
+use App\Models\JoinRequest;
 use App\Models\Organization;
 use App\Models\Tontine;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -17,8 +20,11 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ShareLinks
 {
-    /** @return array{type: string, data: array<string, mixed>}|null */
-    public static function resolve(string $code): ?array
+    /**
+     * @param  User|null  $viewer  visiteur connecté, pour savoir s'il est déjà membre ou s'il a une demande en cours
+     * @return array{type: string, data: array<string, mixed>}|null
+     */
+    public static function resolve(string $code, ?User $viewer = null): ?array
     {
         $code = strtoupper(trim($code));
 
@@ -30,16 +36,18 @@ class ShareLinks
             return ['type' => 'invitation', 'data' => self::invitation($invitation)];
         }
 
-        if (($tontine = self::shared(Tontine::with(['organization', 'creator'])->withCount('members'), $code)) !== null) {
-            return ['type' => 'tontine', 'data' => self::tontine($tontine)];
+        $tontines = Tontine::with(['organization', 'creator'])->withCount('members')->whereNull('hidden_at');
+        if (($tontine = self::shared($tontines, $code)) !== null) {
+            return ['type' => 'tontine', 'data' => self::tontine($tontine) + self::viewer($viewer, $tontine->organization, $tontine)];
         }
 
-        if (($cagnotte = self::shared(Cagnotte::with('organization')->withCount('contributions'), $code)) !== null) {
-            return ['type' => 'cagnotte', 'data' => self::cagnotte($cagnotte)];
+        $cagnottes = Cagnotte::with('organization')->withCount('contributions')->whereNull('hidden_at');
+        if (($cagnotte = self::shared($cagnottes, $code)) !== null) {
+            return ['type' => 'cagnotte', 'data' => self::cagnotte($cagnotte) + self::viewer($viewer, $cagnotte->organization, null)];
         }
 
         if (($organization = self::shared(Organization::withCount('memberships'), $code)) !== null) {
-            return ['type' => 'organisation', 'data' => self::organization($organization)];
+            return ['type' => 'organisation', 'data' => self::organization($organization) + self::viewer($viewer, $organization, null)];
         }
 
         return null;
@@ -118,6 +126,26 @@ class ShareLinks
             'organization' => $invitation->organization->name,
             'tontine' => $invitation->tontine?->name,
         ];
+    }
+
+    /** Ce que le visiteur connecté peut faire : rien de personnel sur les autres, seulement sur lui-même. */
+    private static function viewer(?User $user, ?Organization $organization, ?Tontine $tontine): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        $isMember = $tontine !== null
+            ? $tontine->hasMember($user->id)
+            : ($organization?->memberships()->where('user_id', $user->id)->exists() ?? false);
+
+        $pending = JoinRequest::where('user_id', $user->id)
+            ->where('organization_id', $organization?->id)
+            ->where('tontine_id', $tontine?->id)
+            ->where('status', JoinRequestStatus::Pending)
+            ->exists();
+
+        return ['viewer' => ['is_member' => $isMember, 'has_pending_request' => $pending]];
     }
 
     /** Le nom d'une organisation restée privée n'apparaît pas sur une fiche publique. */

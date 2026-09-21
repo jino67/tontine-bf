@@ -59,6 +59,10 @@ class SharedLink {
   bool get usable => data['usable'] != false;
   bool get acceptsRequests => data['accepts_requests'] == true;
   int? get objectId => asIntOrNull(data['id']);
+
+  /// Renseigné par l'API quand le visiteur est connecté.
+  bool get isMember => asMap(data['viewer'])['is_member'] == true;
+  bool get hasPendingRequest => asMap(data['viewer'])['has_pending_request'] == true;
 }
 
 /// Extrait le code d'un lien collé ou saisi : « https://exemple.bf/t/ABCD2345 » donne « ABCD2345 ».

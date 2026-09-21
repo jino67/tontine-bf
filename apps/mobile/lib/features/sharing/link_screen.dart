@@ -8,6 +8,8 @@ import '../../core/session/session_controller.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
+import '../discover/discover_repository.dart';
+import '../discover/join_request.dart';
 import 'sharing.dart';
 import 'sharing_repository.dart';
 
@@ -26,6 +28,68 @@ class _LinkScreenState extends State<LinkScreen> {
   bool _joining = false;
 
   Future<SharedLink> _resolve() => SharingRepository(SessionScope.read(context).api).resolve(widget.code);
+
+  /// Demande d'adhésion. Quand l'adhésion est libre, l'API fait entrer tout de suite.
+  Future<void> _request(SharedLink link) async {
+    final id = link.objectId;
+    if (id == null) return;
+
+    final session = SessionScope.read(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _joining = true);
+    try {
+      final request = await DiscoverRepository(session.api).requestJoin(
+        type: link.type == 'organisation' ? 'organisation' : 'tontine',
+        id: id,
+      );
+      if (request == null) await session.reloadOrganizations();
+      if (!mounted) return;
+      setState(() {
+        _joining = false;
+        _future = _resolve();
+      });
+      messenger.showSnackBar(SnackBar(
+        content: Text(request == null ? 'Vous en faites maintenant partie.' : 'Demande envoyée au responsable.'),
+      ));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _joining = false);
+      showError(context, error);
+    }
+  }
+
+  Future<void> _report(SharedLink link) async {
+    final id = link.objectId;
+    if (id == null) return;
+
+    final reason = await showModalBottomSheet<ReportReason>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text('Pourquoi signaler cette page ?', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            for (final reason in ReportReason.values)
+              ListTile(title: Text(reason.label), onTap: () => Navigator.of(context).pop(reason)),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (reason == null || !mounted) return;
+
+    try {
+      await DiscoverRepository(SessionScope.read(context).api).report(type: link.type, id: id, reason: reason);
+      if (mounted) showDone(context, 'Signalement envoyé. Merci.');
+    } catch (error) {
+      if (mounted) showError(context, error);
+    }
+  }
 
   Future<void> _join(SharedLink link) async {
     final session = SessionScope.read(context);
@@ -175,12 +239,71 @@ class _LinkScreenState extends State<LinkScreen> {
       ];
     }
 
+    if (session.status != SessionStatus.signedIn) {
+      return [
+        Text(
+          'Connectez-vous avec votre numéro pour demander à rejoindre.',
+          style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+        ),
+      ];
+    }
+
+    if (link.isMember) {
+      return [
+        Text('Vous en faites déjà partie.', style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted)),
+        ..._reportAction(link),
+      ];
+    }
+
+    if (link.hasPendingRequest) {
+      return [
+        Text(
+          'Votre demande est en attente. Le responsable vous répondra dans l’application.',
+          style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+        ),
+        ..._reportAction(link),
+      ];
+    }
+
+    if (link.type != 'cagnotte' && link.acceptsRequests) {
+      return [
+        FilledButton(
+          onPressed: _joining ? null : () => _request(link),
+          child: _joining ? const ButtonSpinner() : const Text('Demander à rejoindre'),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Le responsable accepte ou refuse. Rien ne vous engage tant qu’il n’a pas répondu.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+        ),
+        ..._reportAction(link),
+      ];
+    }
+
     return [
       Text(
-        link.acceptsRequests
-            ? 'Pour participer, demandez le code d’invitation au responsable. La demande d’adhésion directe arrive bientôt.'
+        link.type == 'cagnotte'
+            ? 'Rejoignez l’organisation pour participer à cette cagnotte.'
             : 'Cette page se rejoint sur invitation. Demandez son code au responsable.',
         style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+      ),
+      ..._reportAction(link),
+    ];
+  }
+
+  /// Signaler n'a de sens que sur une fiche publique d'objet, pas sur une invitation reçue.
+  List<Widget> _reportAction(SharedLink link) {
+    if (link.type != 'tontine' && link.type != 'cagnotte') return const [];
+
+    return [
+      const SizedBox(height: 12),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => _report(link),
+          icon: const Icon(Icons.flag_outlined, size: 18),
+          label: const Text('Signaler'),
+        ),
       ),
     ];
   }

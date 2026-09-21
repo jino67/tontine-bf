@@ -4,6 +4,7 @@ import '../../app/theme.dart';
 import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/ui.dart';
+import '../discover/join_requests_screen.dart';
 import '../sharing/share_actions.dart';
 import 'invite_sheet.dart';
 import 'organization.dart';
@@ -67,6 +68,14 @@ class _MembersScreenState extends State<MembersScreen> {
       appBar: AppBar(
         title: const Text('Membres et rôles'),
         actions: [
+          if (organization.role.canManage)
+            IconButton(
+              tooltip: 'Demandes d’adhésion',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => JoinRequestsScreen(organizationId: organization.id)),
+              ),
+              icon: const Icon(Icons.how_to_reg_rounded),
+            ),
           IconButton(
             tooltip: 'Partager l’organisation',
             onPressed: () => shareOrganization(context, organization),

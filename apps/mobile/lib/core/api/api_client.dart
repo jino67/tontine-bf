@@ -25,6 +25,8 @@ class ApiClient {
 
   Future<dynamic> patch(String path, Map<String, dynamic> body) => _send('PATCH', path, body);
 
+  Future<dynamic> delete(String path) => _send('DELETE', path);
+
   Future<dynamic> _send(String method, String path, [Map<String, dynamic>? body]) async {
     final request = http.Request(method, Uri.parse('$baseUrl$path'))..headers['Accept'] = 'application/json';
 

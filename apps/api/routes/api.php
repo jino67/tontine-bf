@@ -9,14 +9,17 @@ use App\Http\Controllers\Api\CagnotteHandoverController;
 use App\Http\Controllers\Api\CagnotteWinnerController;
 use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\CycleController;
+use App\Http\Controllers\Api\DiscoverController;
 use App\Http\Controllers\Api\DrawController;
 use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MyContributionController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PayDunyaWebhookController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ShareLinkController;
 use App\Http\Controllers\Api\SharingController;
 use App\Http\Controllers\Api\StartTontineController;
@@ -49,6 +52,13 @@ Route::prefix('v1')->group(function () {
         Route::post('orgs', [OrganizationController::class, 'store']);
         Route::post('invitations/{code}/accept', AcceptInvitationController::class);
 
+        // Annuaire public, demandes d'adhésion et signalements : le demandeur n'est pas encore membre.
+        Route::get('discover', DiscoverController::class);
+        Route::get('join-requests', [JoinRequestController::class, 'mine']);
+        Route::post('join-requests', [JoinRequestController::class, 'store']);
+        Route::delete('join-requests/{joinRequest}', [JoinRequestController::class, 'destroy']);
+        Route::post('reports', [ReportController::class, 'store']);
+
         // scopeBindings : chaque ressource imbriquée est cherchée dans son parent,
         // une tontine ou une cagnotte d'une autre organisation répond donc 404.
         Route::prefix('orgs/{organization}')->middleware('org.member')->scopeBindings()->group(function () {
@@ -57,6 +67,9 @@ Route::prefix('v1')->group(function () {
             Route::patch('members/{membership}', [MemberController::class, 'update']);
             Route::post('invitations', [InvitationController::class, 'store']);
             Route::put('sharing', [SharingController::class, 'organization']);
+            Route::get('join-requests', [JoinRequestController::class, 'index']);
+            Route::post('join-requests/{joinRequest}/approve', [JoinRequestController::class, 'approve']);
+            Route::post('join-requests/{joinRequest}/reject', [JoinRequestController::class, 'reject']);
 
             Route::get('tontines', [TontineController::class, 'index']);
             Route::post('tontines', [TontineController::class, 'store']);

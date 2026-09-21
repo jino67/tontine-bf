@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/ui.dart';
+import '../discover/discover_screen.dart';
 import 'create_tontine_screen.dart';
 import 'models.dart';
 import 'tontine_repository.dart';
@@ -68,7 +69,16 @@ class _TontinesScreenState extends State<TontinesScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tontines')),
+      appBar: AppBar(
+        title: const Text('Tontines'),
+        actions: [
+          IconButton(
+            tooltip: 'Découvrir des tontines publiques',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen())),
+            icon: const Icon(Icons.travel_explore_rounded),
+          ),
+        ],
+      ),
       floatingActionButton: role.canManage
           ? FloatingActionButton.extended(
               onPressed: () => Navigator.of(context).push(

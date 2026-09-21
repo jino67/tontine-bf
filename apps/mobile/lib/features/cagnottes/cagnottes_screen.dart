@@ -4,6 +4,7 @@ import '../../app/theme.dart';
 import '../../content/cagnotte_guide.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/ui.dart';
+import '../discover/discover_screen.dart';
 import 'cagnotte.dart';
 import 'cagnotte_repository.dart';
 import 'cagnotte_tile.dart';
@@ -67,7 +68,16 @@ class _CagnottesScreenState extends State<CagnottesScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cagnottes')),
+      appBar: AppBar(
+        title: const Text('Cagnottes'),
+        actions: [
+          IconButton(
+            tooltip: 'Découvrir des cagnottes publiques',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiscoverScreen())),
+            icon: const Icon(Icons.travel_explore_rounded),
+          ),
+        ],
+      ),
       floatingActionButton: role.canManage
           ? FloatingActionButton.extended(
               onPressed: () => Navigator.of(context).push(
