@@ -14,6 +14,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\Fees\FeeEngine;
 use App\Services\Fees\FeeQuote;
+use App\Services\Notifications\NotificationEvents;
 use App\Services\PayDunya\PayDunyaClient;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +27,12 @@ use Illuminate\Support\Facades\Log;
  */
 class PaymentService
 {
-    public function __construct(private PayDunyaClient $client, private FeeEngine $fees, private WalletService $wallet) {}
+    public function __construct(
+        private PayDunyaClient $client,
+        private FeeEngine $fees,
+        private WalletService $wallet,
+        private NotificationEvents $events,
+    ) {}
 
     public function startForContribution(Contribution $contribution, User $payer): Payment
     {
@@ -205,6 +211,7 @@ class PaymentService
         ]);
 
         $contribution->cycle->tontine->refreshCompletion();
+        $this->events->cycleSettledIfComplete($contribution->cycle);
 
         return true;
     }

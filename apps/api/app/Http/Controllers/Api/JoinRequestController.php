@@ -14,6 +14,7 @@ use App\Models\JoinRequest;
 use App\Models\Organization;
 use App\Models\Tontine;
 use App\Models\User;
+use App\Services\Notifications\NotificationEvents;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -28,6 +29,8 @@ use Illuminate\Support\Facades\DB;
 class JoinRequestController extends Controller
 {
     use AuthorizesOrganizationRoles;
+
+    public function __construct(private NotificationEvents $events) {}
 
     /** Trois refus sur le même objet ferment la porte pendant 30 jours. */
     private const MAX_REFUSALS = 3;
@@ -75,6 +78,8 @@ class JoinRequestController extends Controller
             ],
             ['message' => $data['message'] ?? null],
         );
+
+        $this->events->joinRequested($joinRequest);
 
         return JoinRequestResource::make($joinRequest->load(['user', 'tontine', 'organization']))
             ->response()
@@ -129,6 +134,8 @@ class JoinRequestController extends Controller
             ]);
         });
 
+        $this->events->joinAnswered($joinRequest);
+
         return JoinRequestResource::make($joinRequest->load(['user', 'tontine', 'organization']));
     }
 
@@ -145,6 +152,8 @@ class JoinRequestController extends Controller
             'decided_by' => $request->user()->id,
             'decided_at' => now(),
         ]);
+
+        $this->events->joinAnswered($joinRequest);
 
         return JoinRequestResource::make($joinRequest->load(['user', 'tontine', 'organization']));
     }

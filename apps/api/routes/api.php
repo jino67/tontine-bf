@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MyContributionController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PayDunyaWebhookController;
 use App\Http\Controllers\Api\PaymentController;
@@ -57,6 +58,13 @@ Route::prefix('v1')->group(function () {
         Route::patch('me', [MeController::class, 'update']);
         Route::get('me/contributions', MyContributionController::class);
         Route::post('fees/simulate', [FeeController::class, 'simulate']);
+
+        // Messages reçus, et ce que le membre accepte de recevoir.
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'read']);
+        Route::get('notifications/settings', [NotificationController::class, 'settings']);
+        Route::put('notifications/settings', [NotificationController::class, 'updateSettings']);
 
         Route::get('orgs', [OrganizationController::class, 'index']);
         Route::post('orgs', [OrganizationController::class, 'store']);

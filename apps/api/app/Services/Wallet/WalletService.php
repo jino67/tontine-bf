@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Fees\FeeEngine;
 use App\Services\Fees\FeeQuote;
+use App\Services\Notifications\NotificationEvents;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,7 @@ use Illuminate\Support\Str;
  */
 class WalletService
 {
-    public function __construct(private Ledger $ledger, private FeeEngine $fees) {}
+    public function __construct(private Ledger $ledger, private FeeEngine $fees, private NotificationEvents $events) {}
 
     public function account(User $user): Account
     {
@@ -176,11 +177,12 @@ class WalletService
 
             $reference = $this->ledger->move($this->account($from), $this->account($to), $amount, $quote->fee, null, $note);
 
-            $this->record($to, WalletOperation::TransferIn, $amount, 0, [
+            $received = $this->record($to, WalletOperation::TransferIn, $amount, 0, [
                 'reference' => $reference.'-R',
                 'counterparty_user_id' => $from->id,
                 'description' => $note ?? 'Reçu de '.($from->name ?? 'un membre'),
             ]);
+            $this->events->walletCredited($to, $received);
 
             return $this->record($from, WalletOperation::TransferOut, $amount, $quote->fee, [
                 'reference' => $reference,
@@ -225,12 +227,15 @@ class WalletService
 
             $this->fees->charge($quote, $related, $user->id, $organizationId);
 
-            return $this->record($user, $type, $net, $quote->fee, [
+            $credited = $this->record($user, $type, $net, $quote->fee, [
                 'reference' => $reference,
                 'organization_id' => $organizationId,
                 'related' => $related,
                 'description' => $description,
             ]);
+            $this->events->walletCredited($user, $credited);
+
+            return $credited;
         });
     }
 

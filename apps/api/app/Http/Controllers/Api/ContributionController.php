@@ -11,12 +11,15 @@ use App\Models\Contribution;
 use App\Models\Cycle;
 use App\Models\Organization;
 use App\Models\Tontine;
+use App\Services\Notifications\NotificationEvents;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ContributionController extends Controller
 {
     use AuthorizesOrganizationRoles;
+
+    public function __construct(private NotificationEvents $events) {}
 
     /** Le trésorier enregistre le montant reçu (espèces ou mobile money hors application). */
     public function update(Request $request, Organization $organization, Tontine $tontine, Cycle $cycle, Contribution $contribution): ContributionResource
@@ -46,6 +49,12 @@ class ContributionController extends Controller
 
         $tontine->refreshCompletion();
 
+        if ($paid) {
+            $this->events->contributionRecorded($contribution);
+        }
+
+        $this->events->cycleSettledIfComplete($cycle);
+
         return ContributionResource::make($contribution->load('member.user'));
     }
 
@@ -64,6 +73,7 @@ class ContributionController extends Controller
 
         if ($contribution->confirmed_at === null) {
             $contribution->update(['confirmed_at' => now()]);
+            $this->events->contributionConfirmed($contribution);
         }
 
         return ContributionResource::make($contribution->load('member.user'));

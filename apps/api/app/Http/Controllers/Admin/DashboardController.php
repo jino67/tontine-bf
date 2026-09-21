@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Cagnotte;
 use App\Models\FeeCharge;
+use App\Models\Notification;
 use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\Report;
@@ -43,6 +44,7 @@ class DashboardController extends Controller
                 'retraits en attente' => WalletTransaction::where('type', 'retrait')->where('status', WalletStatus::Pending)->count(),
                 'paiements reçus non affectés' => Payment::where('status', PaymentStatus::Paid)->whereNull('applied_at')->count(),
                 'compte d’attente' => Account::system(AccountKind::Suspense)->balance(),
+                'messages en attente' => Notification::where('status', Notification::PENDING)->count(),
             ],
             'recentCharges' => FeeCharge::with('user')->latest('id')->limit(10)->get(),
         ]);
