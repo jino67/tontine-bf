@@ -2,7 +2,8 @@
 
 Cahier des charges à valider avant développement. Il reprend les idées du porteur du projet, les pousse jusqu'aux détails d'implémentation, et signale les points qui engagent juridiquement.
 
-**Statut : proposition. Rien n'est développé tant que la section 9 n'est pas tranchée.**
+**Statut : livré.** Les sept lots sont développés et testés. La section 9 garde les décisions
+qui ont été prises, et ce qui reste ouvert.
 
 ---
 
@@ -386,28 +387,51 @@ L'ouverture au public élargit ce qui est visible. Règle simple : aucun numéro
 |---|---|---|---|
 | **L1. Visibilité et liens** ✅ livré | `visibility` et `join_policy`, codes de partage, fiche publique sans donnée personnelle, page web de repli, App Links, QR, partage WhatsApp, lien accepté à la place du code | aucune | fait |
 | **L2. Adhésion** ✅ livré | `join_requests`, annuaire public avec recherche, demande d'adhésion et approbation, adhésion libre, signalement qui masque après trois alertes | L1 | fait |
-| **L3. Moteur de frais** | `fee_rules`, `fee_charges`, calcul, affichage avant confirmation, reçus, page des frais | aucune | 1 semaine |
-| **L4. Portefeuille, socle** | comptes, écritures, historique, paiement d'une cotisation depuis le solde, transferts internes | L3 | 1 à 2 semaines |
-| **L5. Portefeuille, entrées et sorties** | dépôt (désactivable), retrait, plafonds, vérification du numéro, réconciliation | L4, décision 4.1 | 1 semaine |
-| **L6. Modération et confiance** | back-office des signalements (la file existe déjà en base), historique du créateur, limites des tontines publiques | L2 | 1 semaine |
-| **L7. Notifications et relances** | voir section 5 bis | L3 pour les montants, L2 pour les demandes | 1 à 2 semaines |
+| **L3. Moteur de frais** ✅ livré | `fee_rules`, `fee_charges`, calcul, affichage avant confirmation, page des frais | aucune | fait |
+| **L4. Portefeuille, socle** ✅ livré | comptes, écritures en partie double, historique, cotisation payée depuis le solde, transferts internes, versement d'un tour | L3 | fait |
+| **L5. Portefeuille, entrées et sorties** ✅ livré | dépôt derrière un réglage, retrait, plafonds par niveau, numéro de retrait confirmé par code | L4 | fait |
+| **L6. Modération et confiance** ✅ livré | back-office complet : signalements, modèles de cagnotte, frais, portefeuilles, comptes | L2 | fait |
+| **L7. Notifications et relances** ✅ livré | voir section 5 bis | L3, L2 | fait |
 
-L1 à L3 peuvent être livrés sans trancher la question réglementaire. L4 et L5 attendent la décision.
+S'y ajoute, hors découpage initial : les cagnottes ouvertes à tous et leurs séries qui
+repartent après le tirage, les modèles de cagnotte créés depuis le back-office, et l'espace
+personnel d'un compte qui n'appartient à aucun groupement.
 
 ---
 
-## 9. À valider avant de commencer
+## 9. Décisions prises
 
-1. **Portefeuille** : montage A (solde de transit, dépôt désactivé) pour démarrer, ou montage B (dépôt libre) tout de suite malgré le risque réglementaire ?
-2. **Niveau des frais** : la grille du 5.2 est-elle acceptée telle quelle ? En particulier les 3 % sur le dépôt et les 5 % sur les cagnottes à gagnants.
-3. **Qui paie les frais d'une cotisation** : le membre, ou l'organisation qui peut choisir de les absorber ?
-4. **Tontines publiques** : ouvertes à tous dès le départ, ou réservées d'abord aux créateurs ayant déjà mené une tontine à terme ?
-5. **Cagnotte à gagnants publique** : activée dès la v2, ou gardée privée le temps de la vérification juridique ?
-6. **Cagnotte solidaire** : publique par défaut, ou privée par défaut comme je le propose ?
-7. **Pseudonyme public** : obligatoire pour tout compte apparaissant sur une fiche publique, ou nom réel affiché ?
-8. **Transfert entre membres** : gratuit comme proposé, ou facturé 0,5 % pour éviter l'usage de l'application comme service de transfert d'argent ?
-9. **Plafonds** : les niveaux du 4.4 conviennent-ils pour le Burkina Faso ?
-10. **Priorité de livraison** : l'ordre L1 à L7, ou le portefeuille d'abord parce qu'il porte le modèle économique ?
-11. **Canaux de notification** : la répartition proposée en 5 bis convient-elle (push gratuit pour tous, WhatsApp pour les relances de paiement, e-mail pour le trésorier, SMS en secours) ? Le push demande d'ouvrir un compte Firebase.
+1. **Portefeuille** : montage A. Toute l'infrastructure est construite, le dépôt libre reste
+   fermé derrière `WALLET_DEPOSITS_ENABLED=false`. Le solde se garnit des gains, des tours reçus,
+   des remboursements et des transferts, et se retire à tout moment.
+2. **Niveau des frais** : la grille du 5.2 est appliquée telle quelle, à une exception près —
+   le plafond de la cagnotte solidaire est retiré, pour que le pot reste calculable à l'identique
+   par l'application, hors ligne, des mois plus tard.
+3. **Qui paie les frais d'une cotisation** : le membre, avec la possibilité pour une organisation
+   d'obtenir sa propre règle depuis le back-office (une règle d'organisation l'emporte sur la
+   règle générale).
+4. **Tontines publiques** : ouvertes, avec les garde-fous du 7.3 déjà en place côté visibilité et
+   demandes d'adhésion. La limite de montant pour un créateur sans historique reste à poser.
+5. **Cagnotte à gagnants publique** : activée. C'est la demande du porteur du projet, et elle est
+   cohérente avec la promesse du tirage vérifiable : plus il y a de témoins, plus la preuve vaut.
+   Le point juridique du 7.2 reste entier — voir « Ce qui reste ouvert ».
+6. **Cagnotte solidaire** : publique par défaut elle aussi, un responsable pouvant la refermer.
+7. **Pseudonyme public** : non retenu pour l'instant. Aucune fiche publique n'expose de numéro,
+   d'adresse e-mail ni de montant individuel ; seuls les noms des gagnants d'un tirage sont visibles.
+8. **Transfert entre membres** : gratuit. Il ne coûte rien à la plateforme, et il ramène de
+   l'argent dans l'application au lieu de l'en faire sortir.
+9. **Plafonds** : ceux du 4.4, réglables sans redéploiement dans `config/wallet.php`.
+10. **Priorité de livraison** : l'ordre L1 à L7 a été tenu.
+11. **Canaux de notification** : la répartition du 5 bis est codée, et le canal descend jusqu'à
+    ce qui est réellement branché. Aujourd'hui : application et e-mail. Push, WhatsApp et SMS sont
+    nommés, réglables par chaque membre, et s'ouvriront sans changer une ligne de logique métier.
 
-Une fois ces dix points tranchés, ce document devient le cahier des charges des lots, et chaque lot est développé avec ses tests, comme le reste du projet.
+### Ce qui reste ouvert
+
+- **Cadrage juridique du dépôt libre**, avec la BCEAO ou un établissement agréé : qui détient les
+  fonds, sur quel compte, sous quel statut, et ce qui se passe si l'application s'arrête (4.1).
+- **Vérification juridique des cagnottes à gagnants publiques** (7.2). L'interrupteur existe :
+  refermer la visibilité publique de ce mode ne demande aucun redéploiement.
+- **Fiscalité et facturation** (5.5), à cadrer avec un comptable burkinabè.
+- **Compte Firebase** pour les notifications push, et modèle WhatsApp à faire approuver.
+- **Limite de montant** des tontines publiques d'un créateur sans historique (7.3).

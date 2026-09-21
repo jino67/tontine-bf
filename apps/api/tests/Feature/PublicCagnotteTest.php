@@ -162,3 +162,27 @@ it('donne son espace personnel à un compte qui n’appartient à aucun groupeme
     $this->getJson('/api/v1/orgs')->assertJsonCount(1, 'data');
     expect($user->organizations()->first()->isPersonal())->toBeTrue();
 });
+
+it('retire les cagnottes à gagnants de l’annuaire quand l’interrupteur est refermé', function () {
+    $organization = Organization::factory()->create();
+    $admin = memberOf($organization, Role::Admin);
+    publicCagnotte($organization, $admin);
+    Cagnotte::factory()->for($organization)->create([
+        'created_by' => $admin->id,
+        'title' => 'Soutien à la famille',
+        'visibility' => Visibility::Listed,
+    ]);
+
+    actingAsUser(User::factory()->create());
+
+    // Ouvert : les deux cagnottes sont dans l'annuaire.
+    expect($this->getJson('/api/v1/discover')->json('data.cagnottes'))->toHaveCount(2);
+
+    config(['cagnottes.public_prize_pools' => false]);
+
+    // Refermé : seule la cagnotte solidaire reste listée.
+    $listed = $this->getJson('/api/v1/discover')->json('data.cagnottes');
+
+    expect($listed)->toHaveCount(1)
+        ->and($listed[0]['title'])->toBe('Soutien à la famille');
+});

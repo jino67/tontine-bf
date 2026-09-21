@@ -78,6 +78,11 @@ LOG_LEVEL=warning
 # SQLite : le fichier tontine-api/database/database.sqlite
 DB_CONNECTION=sqlite
 
+# Le dépôt libre encaisse des fonds remboursables du public : activité encadrée par la BCEAO.
+# Laisser false tant que le cadrage juridique n'est pas écrit. Le reste du portefeuille
+# (gains, tours reçus, remboursements, transferts, retraits) fonctionne sans lui.
+WALLET_DEPOSITS_ENABLED=false
+
 SESSION_DRIVER=file
 CACHE_STORE=file
 QUEUE_CONNECTION=database
@@ -129,7 +134,18 @@ Dans le panneau LWS, une tâche **toutes les minutes** :
 cd /home/<utilisateur>/htdocs/<domaine>/tontine-api && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Le chemin de `php` en ligne de commande peut différer de la version du site : vérifier avec `php -v` et utiliser le chemin complet de la bonne version si besoin. Le planificateur (`routes/console.php`) traite la file d'attente chaque minute, puis purge chaque jour les codes OTP périmés et les jetons expirés.
+Le chemin de `php` en ligne de commande peut différer de la version du site : vérifier avec `php -v` et utiliser le chemin complet de la bonne version si besoin.
+
+Le planificateur (`routes/console.php`) fait tout le reste depuis cette seule tâche :
+
+| Quand | Quoi |
+|---|---|
+| chaque minute | vide la file d'attente |
+| toutes les 15 minutes | envoie les notifications dont l'heure est venue |
+| 6 h 30, heure de Ouagadougou | prépare les relances du jour |
+| chaque jour | purge les codes de connexion périmés et les jetons expirés |
+
+Sans cette tâche, l'application fonctionne mais ne relance personne.
 
 ## 5. PayDunya
 
@@ -188,6 +204,24 @@ cd /home/<utilisateur>/htdocs/<domaine>/tontine-api && php artisan migrate --for
 
 Le fichier `tontine-api/storage/logs/migration.log` dit ce qui a été appliqué. Vider ensuite
 `tontine-api/bootstrap/cache` s'il contient des fichiers `.php`.
+
+## 9 bis. Back-office
+
+Le back-office est servi par la même installation, à `https://<domaine>/admin`. Il n'a pas
+d'utilisateur au départ : le premier se crée comme une migration, par une tâche planifiée
+lancée **une seule fois**, puis supprimée.
+
+```bash
+cd /home/<utilisateur>/htdocs/<domaine>/tontine-api && php artisan admin:create --phone=70123456 --password='<mot de passe long>' >> storage/logs/admin.log 2>&1
+```
+
+Le mot de passe fait au moins dix caractères et ne sert qu'au back-office : les membres, eux,
+se connectent par code à usage unique. `--revoke` retire l'accès à un numéro.
+
+Ce que le back-office permet : suivre les chiffres de la plateforme, trancher les signalements,
+créer les modèles de cagnotte proposés dans l'application, mettre en vigueur une nouvelle règle
+de frais, contrôler l'équilibre du grand livre et les retraits en attente, et suspendre un compte.
+Être responsable d'une organisation n'y donne aucun droit.
 
 ## 10. Mise à jour de l'installation par archive
 

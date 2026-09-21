@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\CagnotteMode;
 use App\Enums\CagnotteStatus;
 use App\Enums\TontineType;
 use App\Enums\Visibility;
@@ -65,6 +66,12 @@ class DiscoverController extends Controller
             ->withTotals()
             ->where('visibility', Visibility::Listed)
             ->whereNull('hidden_at')
+            // Les cagnottes à gagnants sortent de l'annuaire si l'interrupteur est refermé :
+            // celles déjà lancées restent accessibles par leur lien et à leurs participants.
+            ->when(
+                ! config('cagnottes.public_prize_pools'),
+                fn ($query) => $query->where('mode', '!=', CagnotteMode::Prize),
+            )
             ->where('status', CagnotteStatus::Open)
             ->where('ends_at', '>', now())
             ->when($filters['q'] ?? null, fn ($query, $q) => $query->where('title', 'like', '%'.$q.'%'))
