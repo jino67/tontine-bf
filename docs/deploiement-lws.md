@@ -108,6 +108,14 @@ PAYDUNYA_PAYOUTS_ENABLED=false
 
 **Codes de connexion.** Avec `OTP_CHANNEL=mail`, le code part par e-mail. À la première connexion, l'application demande l'adresse, qui reste ensuite liée au numéro. Les numéros de `OTP_TEST_PHONES` se connectent avec `OTP_TEST_CODE` sans rien recevoir, uniquement hors `production` : garder `APP_ENV=staging` pendant les essais. Sans `OTP_CHANNEL=mail`, les codes sont écrits dans `tontine-api/storage/logs`, ce que l'API refuse en `production`. Les réglages mail ne sont pris en compte qu'après avoir vidé `tontine-api/bootstrap/cache` s'il contient des fichiers `.php`.
 
+**Si l'envoi échoue avec un message du type « Peer certificate CN=*.lwspanel.com did not match expected CN=mail.\<domaine\> »** : le certificat du serveur mail n'est pas encore émis pour le domaine. LWS le génère dans les heures qui suivent la création de la boîte. En attendant, mettre dans `MAIL_HOST` le nom du serveur LWS lui-même, couvert par son certificat générique :
+
+```bash
+nslookup <adresse IP du serveur mail>
+```
+
+Le DNS inverse renvoie un nom de la forme `mailXX.lwspanel.com` : c'est cette valeur qui va dans `MAIL_HOST`, le reste des réglages ne change pas.
+
 ## 4. Tâche cron
 
 Dans le panneau LWS, une tâche **toutes les minutes** :
