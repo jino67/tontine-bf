@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../core/api/api_client.dart';
 import '../../content/help.dart';
 import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
@@ -9,12 +10,15 @@ import '../../core/widgets/woven_band.dart';
 import '../cagnottes/cagnotte.dart';
 import '../cagnottes/cagnotte_repository.dart';
 import '../cagnottes/cagnotte_tile.dart';
-import '../payments/pay_online.dart';
+import '../payments/pay_choice.dart';
 import '../profile/help_screen.dart';
 import '../tontines/create_tontine_screen.dart';
 import '../tontines/models.dart';
 import '../tontines/tontine_repository.dart';
 import '../tontines/tontine_tile.dart';
+import '../wallet/wallet.dart';
+import '../wallet/wallet_repository.dart';
+import '../wallet/wallet_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.repository, required this.cagnotteRepository, required this.onOpenTab});
@@ -73,10 +77,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  /// Le membre choisit entre son solde et son compte mobile money, frais annoncés.
   Future<void> _payOnline(MyContribution item) async {
-    final paid = await payOnline(
+    final paid = await choosePayment(
       context,
-      start: (payments) => payments.payContribution(item.tontineId, item.contribution.cycleId, item.contribution.id),
+      amount: item.contribution.amountLeft,
+      purpose: 'Cotisation',
+      startOnline: (payments) =>
+          payments.payContribution(item.tontineId, item.contribution.cycleId, item.contribution.id),
+      payWithBalance: (payments) =>
+          payments.payContributionWithBalance(item.tontineId, item.contribution.cycleId, item.contribution.id),
     );
     if (paid) widget.repository.revision.value++;
   }
@@ -107,6 +117,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     organizationName: organization.name,
                     userName: session.user?.name,
                     onProfile: () => widget.onOpenTab(4),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: _WalletStrip(api: session.api),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -481,6 +495,67 @@ class _TipOfTheDay extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Bandeau du solde sur l'accueil : l'argent disponible est la première chose à savoir.
+class _WalletStrip extends StatefulWidget {
+  const _WalletStrip({required this.api});
+
+  final ApiClient api;
+
+  @override
+  State<_WalletStrip> createState() => _WalletStripState();
+}
+
+class _WalletStripState extends State<_WalletStrip> {
+  late final WalletRepository _wallet = WalletRepository(widget.api);
+  late Future<WalletSummary> _future = _wallet.summary();
+
+  void _open() {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => WalletScreen(repository: _wallet)))
+        .then((_) {
+      if (mounted) setState(() => _future = _wallet.summary());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return FutureBuilder<WalletSummary>(
+      future: _future,
+      builder: (context, snapshot) {
+        final balance = snapshot.data?.balance;
+
+        return InkWell(
+          onTap: _open,
+          borderRadius: BorderRadius.circular(16),
+          child: Panel(
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_wallet_outlined, color: AppColors.leaf),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mon portefeuille', style: AppType.sans(bold: true)),
+                      Text(
+                        balance == null ? 'Solde en cours de lecture…' : 'Solde : ${fcfa(balance)}',
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

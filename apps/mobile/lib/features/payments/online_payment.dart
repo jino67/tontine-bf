@@ -51,10 +51,12 @@ class OnlinePayment {
 }
 
 class PaymentRepository {
-  PaymentRepository(this._api, this.organizationId);
+  PaymentRepository(this._api, [this.organizationId]);
 
   final ApiClient _api;
-  final int organizationId;
+
+  /// Nul pour un dépôt sur le portefeuille, qui n'appartient à aucune organisation.
+  final int? organizationId;
 
   String get _base => '/orgs/$organizationId';
 
@@ -65,7 +67,15 @@ class PaymentRepository {
   Future<OnlinePayment> payCagnotte(int cagnotteId, int amount) async =>
       OnlinePayment.fromJson(asMap(unwrap(await _api.post('$_base/cagnottes/$cagnotteId/pay', {'amount': amount}))));
 
+  /// Réglé avec l'argent déjà présent sur le solde : rien ne sort de l'application.
+  Future<void> payContributionWithBalance(int tontineId, int cycleId, int contributionId) =>
+      _api.post('$_base/tontines/$tontineId/cycles/$cycleId/contributions/$contributionId/pay-with-balance');
+
+  Future<void> payCagnotteWithBalance(int cagnotteId, int amount) =>
+      _api.post('$_base/cagnottes/$cagnotteId/pay-with-balance', {'amount': amount});
+
   /// Relit le statut : l'API interroge PayDunya si le paiement est encore en attente.
+  /// La route personnelle répond pour tous les paiements lancés par le membre connecté.
   Future<OnlinePayment> status(int paymentId) async =>
-      OnlinePayment.fromJson(asMap(unwrap(await _api.get('$_base/payments/$paymentId'))));
+      OnlinePayment.fromJson(asMap(unwrap(await _api.get('/payments/$paymentId'))));
 }

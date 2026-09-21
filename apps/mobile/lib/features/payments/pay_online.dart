@@ -10,14 +10,23 @@ import 'online_payment.dart';
 
 /// Crée le paiement, ouvre la page PayDunya, puis vérifie le statut au retour dans l'application.
 /// Retourne true si le paiement est validé.
-Future<bool> payOnline(BuildContext context, {required Future<OnlinePayment> Function(PaymentRepository payments) start}) async {
+///
+/// [start] sert aux paiements d'une organisation (cotisation, cagnotte). [begin] sert à ceux qui
+/// n'en dépendent pas, comme un dépôt sur le portefeuille.
+Future<bool> payOnline(
+  BuildContext context, {
+  Future<OnlinePayment> Function(PaymentRepository payments)? start,
+  Future<OnlinePayment> Function()? begin,
+}) async {
+  assert(start != null || begin != null, 'Indiquez comment le paiement démarre.');
+
   final session = SessionScope.read(context);
-  final payments = PaymentRepository(session.api, session.currentOrganization!.id);
+  final payments = PaymentRepository(session.api, session.currentOrganization?.id);
 
   final paid = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _PaymentFlowSheet(payments: payments, start: () => start(payments)),
+    builder: (_) => _PaymentFlowSheet(payments: payments, start: () => begin != null ? begin() : start!(payments)),
   );
   return paid ?? false;
 }

@@ -87,15 +87,19 @@ enum PaymentMethod {
   moovMoney('moov_money', 'Moov Money'),
   bankTransfer('virement', 'Virement'),
   other('autre', 'Autre'),
-  paydunya('paydunya', 'PayDunya');
+  paydunya('paydunya', 'PayDunya'),
+  wallet('portefeuille', 'Portefeuille');
 
   const PaymentMethod(this.apiValue, this.label);
 
   final String apiValue;
   final String label;
 
-  /// Moyens saisis à la main. Un paiement PayDunya n'est jamais saisi : c'est le prestataire qui le confirme.
-  static List<PaymentMethod> get manual => [for (final method in values) if (method != paydunya) method];
+  /// Vrai quand l'argent est passé par l'application : ces moyens ne se saisissent pas à la main.
+  bool get isOnline => this == paydunya || this == wallet;
+
+  /// Moyens saisis à la main. Un paiement en ligne n'est jamais saisi : l'application le confirme elle-même.
+  static List<PaymentMethod> get manual => [for (final method in values) if (!method.isOnline) method];
 
   static PaymentMethod? fromApi(Object? value) {
     for (final method in values) {
@@ -246,6 +250,9 @@ class Contribution {
   final DateTime? confirmedAt;
 
   bool get isFullyPaid => amountPaid >= amountDue;
+
+  /// Ce qu'il reste à verser : c'est ce montant que l'on paie, jamais la totalité du tour.
+  int get amountLeft => (amountDue - amountPaid).clamp(0, amountDue);
 }
 
 class Cycle {

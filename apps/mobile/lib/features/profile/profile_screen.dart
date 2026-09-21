@@ -7,9 +7,13 @@ import '../../core/session/session_controller.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
+import '../fees/fees_screen.dart';
+import '../notifications/notifications_screen.dart';
 import '../organizations/invite_sheet.dart';
 import '../organizations/join_screen.dart';
 import '../organizations/members_screen.dart';
+import '../wallet/wallet_repository.dart';
+import '../wallet/wallet_screen.dart';
 import 'guide_screen.dart';
 import 'help_screen.dart';
 import 'legal_screens.dart';
@@ -114,6 +118,28 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+          const SectionTitle('Mon argent'),
+          _LinkGroup(
+            links: [
+              _Link(
+                Icons.account_balance_wallet_outlined,
+                'Mon portefeuille',
+                () => _open(context, WalletScreen(repository: WalletRepository(session.api))),
+              ),
+              _Link(Icons.receipt_long_outlined, 'Frais de service', () => _open(context, const FeesScreen())),
+            ],
+          ),
+          const SectionTitle('Messages'),
+          _LinkGroup(
+            links: [
+              _Link(Icons.notifications_none_rounded, 'Mes notifications', () => _open(context, const NotificationsScreen())),
+              _Link(
+                Icons.tune_rounded,
+                'Ce que je veux recevoir',
+                () => _open(context, const NotificationSettingsScreen()),
+              ),
+            ],
           ),
           const SectionTitle('Organisation'),
           _LinkGroup(

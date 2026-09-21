@@ -6,7 +6,7 @@ import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
 import '../../core/widgets/woven_band.dart';
-import '../payments/pay_online.dart';
+import '../payments/pay_choice.dart';
 import 'models.dart';
 import 'record_payment_sheet.dart';
 import 'status_style.dart';
@@ -85,10 +85,15 @@ class _CycleDetailScreenState extends State<CycleDetailScreen> {
     }
   }
 
+  /// Solde ou mobile money, avec les frais des deux chemins annoncés avant de choisir.
   Future<void> _payOnline(Contribution contribution) async {
-    final paid = await payOnline(
+    final paid = await choosePayment(
       context,
-      start: (payments) => payments.payContribution(widget.tontineId, contribution.cycleId, contribution.id),
+      amount: contribution.amountLeft,
+      purpose: 'Cotisation',
+      startOnline: (payments) => payments.payContribution(widget.tontineId, contribution.cycleId, contribution.id),
+      payWithBalance: (payments) =>
+          payments.payContributionWithBalance(widget.tontineId, contribution.cycleId, contribution.id),
     );
     if (paid) widget.repository.revision.value++;
   }
