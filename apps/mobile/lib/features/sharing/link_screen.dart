@@ -10,6 +10,7 @@ import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
 import '../discover/discover_repository.dart';
 import '../discover/join_request.dart';
+import '../payments/pay_choice.dart';
 import 'sharing.dart';
 import 'sharing_repository.dart';
 
@@ -26,8 +27,80 @@ class LinkScreen extends StatefulWidget {
 class _LinkScreenState extends State<LinkScreen> {
   late Future<SharedLink> _future = _resolve();
   bool _joining = false;
+  bool _participating = false;
 
   Future<SharedLink> _resolve() => SharingRepository(SessionScope.read(context).api).resolve(widget.code);
+
+  /// Participation à une cagnotte ouverte à tous : un paiement, pas une adhésion.
+  Future<void> _participate(SharedLink link) async {
+    final id = link.objectId;
+    if (id == null) return;
+
+    final ticket = asIntOrNull(link.data['ticket_price']);
+    final minimum = ticket ?? asInt(link.data['min_amount']);
+    final amount = await _askAmount(minimum: minimum, ticketPrice: ticket);
+
+    if (amount == null || !mounted) return;
+
+    setState(() => _participating = true);
+    try {
+      final paid = await choosePayment(
+        context,
+        amount: amount,
+        purpose: 'Participation',
+        onlineOperation: null,
+        balanceOperation: null,
+        startOnline: (payments) => payments.payPublicCagnotte(id, amount),
+        payWithBalance: (payments) => payments.payPublicCagnotteWithBalance(id, amount),
+      );
+
+      if (!mounted) return;
+      if (paid) setState(() => _future = _resolve());
+    } finally {
+      if (mounted) setState(() => _participating = false);
+    }
+  }
+
+  /// Montant de la participation, au moins le minimum annoncé par la fiche.
+  Future<int?> _askAmount({required int minimum, int? ticketPrice}) async {
+    final controller = TextEditingController(text: '${minimum <= 0 ? 500 : minimum}');
+
+    return showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Votre participation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(suffixText: 'FCFA'),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              ticketPrice == null
+                  ? 'À partir de ${fcfa(minimum)}.'
+                  : 'Le ticket est à ${fcfa(ticketPrice)} : chaque ticket est une chance.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.replaceAll(RegExp(r'\s'), '')) ?? 0;
+              Navigator.pop(context, value >= minimum && value > 0 ? value : null);
+            },
+            child: const Text('Continuer'),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// Demande d'adhésion. Quand l'adhésion est libre, l'API fait entrer tout de suite.
   Future<void> _request(SharedLink link) async {
@@ -265,7 +338,23 @@ class _LinkScreenState extends State<LinkScreen> {
       ];
     }
 
-    if (link.type != 'cagnotte' && link.acceptsRequests) {
+    if (link.type == 'cagnotte') {
+      return [
+        FilledButton(
+          onPressed: _participating ? null : () => _participate(link),
+          child: _participating ? const ButtonSpinner() : const Text('Participer'),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Participer est un paiement, pas une adhésion : il n’y a rien à faire approuver, '
+          'et vous n’entrez pas dans le groupe qui porte la cagnotte.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+        ),
+        ..._reportAction(link),
+      ];
+    }
+
+    if (link.acceptsRequests) {
       return [
         FilledButton(
           onPressed: _joining ? null : () => _request(link),
@@ -282,9 +371,7 @@ class _LinkScreenState extends State<LinkScreen> {
 
     return [
       Text(
-        link.type == 'cagnotte'
-            ? 'Rejoignez l’organisation pour participer à cette cagnotte.'
-            : 'Cette page se rejoint sur invitation. Demandez son code au responsable.',
+        'Cette page se rejoint sur invitation. Demandez son code au responsable.',
         style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.muted),
       ),
       ..._reportAction(link),

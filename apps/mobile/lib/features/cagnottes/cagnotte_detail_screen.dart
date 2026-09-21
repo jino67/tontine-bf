@@ -9,7 +9,7 @@ import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
 import '../../core/widgets/verification.dart';
 import '../organizations/organization.dart';
-import '../payments/pay_online.dart';
+import '../payments/pay_choice.dart';
 import '../sharing/share_actions.dart';
 import '../tontines/models.dart' show ContributionStatus, PaymentMethod;
 import 'cagnotte.dart';
@@ -143,10 +143,21 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
     if (saved == true && mounted) showDone(context, 'Remise du gain enregistrée');
   }
 
+  /// Participer : depuis le solde ou par mobile money. Le ticket est encaissé au franc
+  /// près dans les deux cas ; la part de l'application est retenue sur le pot, au partage.
   Future<void> _participateOnline(Cagnotte cagnotte) async {
     final amount = await pickParticipationAmount(context, cagnotte);
     if (amount == null || !mounted) return;
-    final paid = await payOnline(context, start: (payments) => payments.payCagnotte(cagnotte.id, amount));
+
+    final paid = await choosePayment(
+      context,
+      amount: amount,
+      purpose: 'Participation',
+      onlineOperation: null,
+      balanceOperation: null,
+      startOnline: (payments) => payments.payCagnotte(cagnotte.id, amount),
+      payWithBalance: (payments) => payments.payCagnotteWithBalance(cagnotte.id, amount),
+    );
     if (paid) widget.repository.revision.value++;
   }
 
@@ -358,6 +369,12 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
     final notes = [
       if (cagnotte.isOpen) 'Montants calculés sur la somme réunie à ce jour.',
       if (cagnotte.feePercent > 0) 'Commission de l’organisation : ${cagnotte.feePercent} %, retenue avant le partage.',
+      // La part de l'application est annoncée ici, jamais découverte au moment du partage.
+      if (cagnotte.platformFeeAmount > 0)
+        'Part de l’application : ${fcfa(cagnotte.platformFeeAmount)}, retenue sur ce qui a été '
+            'réglé par l’application. Rien n’est prélevé sur les espèces remises au trésorier.',
+      if (cagnotte.recurring)
+        'Cagnotte récurrente : une nouvelle édition s’ouvre dès que le tirage est révélé.',
     ];
 
     return [

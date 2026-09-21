@@ -67,6 +67,14 @@ class PaymentRepository {
   Future<OnlinePayment> payCagnotte(int cagnotteId, int amount) async =>
       OnlinePayment.fromJson(asMap(unwrap(await _api.post('$_base/cagnottes/$cagnotteId/pay', {'amount': amount}))));
 
+  /// Cagnotte ouverte à tous : on y participe sans appartenir à l'organisation qui la porte.
+  Future<OnlinePayment> payPublicCagnotte(int cagnotteId, int amount) async => OnlinePayment.fromJson(
+        asMap(unwrap(await _api.post('/cagnottes/$cagnotteId/pay', {'amount': amount}))),
+      );
+
+  Future<void> payPublicCagnotteWithBalance(int cagnotteId, int amount) =>
+      _api.post('/cagnottes/$cagnotteId/pay-with-balance', {'amount': amount});
+
   /// Réglé avec l'argent déjà présent sur le solde : rien ne sort de l'application.
   Future<void> payContributionWithBalance(int tontineId, int cycleId, int contributionId) =>
       _api.post('$_base/tontines/$tontineId/cycles/$cycleId/contributions/$contributionId/pay-with-balance');

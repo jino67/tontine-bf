@@ -252,6 +252,10 @@ class Cagnotte {
     this.ticketPrice,
     this.winnersCount,
     this.feePercent = 0,
+    this.platformFeeAmount = 0,
+    this.potAmount = 0,
+    this.recurring = false,
+    this.edition = 1,
     this.ticketsCount = 0,
     this.myTickets,
     this.prizes = const [],
@@ -296,6 +300,10 @@ class Cagnotte {
       ticketPrice: asIntOrNull(json['ticket_price']),
       winnersCount: asIntOrNull(json['winners_count']),
       feePercent: asInt(json['fee_percent']),
+      platformFeeAmount: asInt(json['platform_fee_amount']),
+      potAmount: asInt(json['pot_amount']),
+      recurring: json['recurring'] == true,
+      edition: json['edition'] == null ? 1 : asInt(json['edition']),
       ticketsCount: asInt(json['tickets_count']),
       myTickets: asIntOrNull(json['my_tickets']),
       prizes: asMapList(json['prizes']).map(CagnottePrize.fromJson).toList(),
@@ -331,6 +339,16 @@ class Cagnotte {
   final int? ticketPrice;
   final int? winnersCount;
   final int feePercent;
+
+  /// Part retenue par l'application, sur ce qui est réellement passé par elle.
+  final int platformFeeAmount;
+
+  /// Ce qui sera partagé entre les gagnants, ou remis au bénéficiaire.
+  final int potAmount;
+
+  /// Une cagnotte récurrente rouvre une édition dès que le tirage est révélé.
+  final bool recurring;
+  final int edition;
   final int ticketsCount;
   final int? myTickets;
   final List<CagnottePrize> prizes;

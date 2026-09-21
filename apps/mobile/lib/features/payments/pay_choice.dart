@@ -22,11 +22,19 @@ Future<bool> choosePayment(
   required String purpose,
   required Future<OnlinePayment> Function(PaymentRepository payments) startOnline,
   required Future<void> Function(PaymentRepository payments) payWithBalance,
+  String? onlineOperation = FeeOperations.contributionOnline,
+  String? balanceOperation = FeeOperations.contributionWallet,
 }) async {
   final choice = await showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _PayChoiceSheet(amount: amount, purpose: purpose, payWithBalance: payWithBalance),
+    builder: (_) => _PayChoiceSheet(
+      amount: amount,
+      purpose: purpose,
+      payWithBalance: payWithBalance,
+      onlineOperation: onlineOperation,
+      balanceOperation: balanceOperation,
+    ),
   );
 
   if (choice == _paidFromBalance) return true;
@@ -43,16 +51,27 @@ class _Options {
   const _Options(this.wallet, this.online, this.fromBalance);
 
   final WalletSummary wallet;
-  final FeeQuote online;
-  final FeeQuote fromBalance;
+
+  /// Nuls quand l'opération ne porte aucun frais à annoncer, comme la participation
+  /// à une cagnotte : le ticket est encaissé au franc près.
+  final FeeQuote? online;
+  final FeeQuote? fromBalance;
 }
 
 class _PayChoiceSheet extends StatefulWidget {
-  const _PayChoiceSheet({required this.amount, required this.purpose, required this.payWithBalance});
+  const _PayChoiceSheet({
+    required this.amount,
+    required this.purpose,
+    required this.payWithBalance,
+    required this.onlineOperation,
+    required this.balanceOperation,
+  });
 
   final int amount;
   final String purpose;
   final Future<void> Function(PaymentRepository payments) payWithBalance;
+  final String? onlineOperation;
+  final String? balanceOperation;
 
   @override
   State<_PayChoiceSheet> createState() => _PayChoiceSheetState();
@@ -73,8 +92,12 @@ class _PayChoiceSheetState extends State<_PayChoiceSheet> {
     final fees = FeesRepository(session.api, organizationId: session.currentOrganization?.id);
 
     final wallet = await WalletRepository(session.api).summary();
-    final online = await fees.simulate(operation: FeeOperations.contributionOnline, amount: widget.amount);
-    final fromBalance = await fees.simulate(operation: FeeOperations.contributionWallet, amount: widget.amount);
+    final online = widget.onlineOperation == null
+        ? null
+        : await fees.simulate(operation: widget.onlineOperation!, amount: widget.amount);
+    final fromBalance = widget.balanceOperation == null
+        ? null
+        : await fees.simulate(operation: widget.balanceOperation!, amount: widget.amount);
 
     return _Options(wallet, online, fromBalance);
   }
@@ -128,7 +151,8 @@ class _PayChoiceSheetState extends State<_PayChoiceSheet> {
           }
 
           final options = snapshot.requireData;
-          final enough = options.wallet.balance >= options.fromBalance.totalAmount;
+          final due = options.fromBalance?.totalAmount ?? widget.amount;
+          final enough = options.wallet.balance >= due;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -147,7 +171,7 @@ class _PayChoiceSheetState extends State<_PayChoiceSheet> {
                   icon: Icons.account_balance_wallet_outlined,
                   title: 'Avec mon solde',
                   detail: enough
-                      ? options.fromBalance.summary
+                      ? (options.fromBalance?.summary ?? 'Vous payez ${fcfa(due)}.')
                       : 'Solde insuffisant : ${fcfa(options.wallet.balance)} disponibles.',
                   tone: enough ? Tone.positive : Tone.neutral,
                   onTap: enough && !_paying ? _payFromBalance : null,
@@ -157,15 +181,17 @@ class _PayChoiceSheetState extends State<_PayChoiceSheet> {
                 _Option(
                   icon: Icons.smartphone_rounded,
                   title: 'Par mobile money',
-                  detail: options.online.summary,
+                  detail: options.online?.summary ?? 'Vous payez ${fcfa(widget.amount)}.',
                   tone: Tone.neutral,
                   onTap: _paying ? null : _payOnline,
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  'Payer depuis le solde coûte moins cher : l’argent est déjà dans l’application.',
-                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
-                ),
+                if (options.fromBalance != null && options.online != null) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Payer depuis le solde coûte moins cher : l’argent est déjà dans l’application.',
+                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  ),
+                ],
               ],
             ),
           );
