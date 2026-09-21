@@ -183,3 +183,20 @@ it('donne et retire l’accès au back-office depuis la ligne de commande', func
     // Un mot de passe trop court est refusé.
     $this->artisan('admin:create', ['--phone' => '70112233', '--password' => 'court'])->assertFailed();
 });
+
+it('affiche chaque page du back-office sans erreur', function () {
+    $moderator = admin();
+    $organization = Organization::factory()->create();
+    publicCagnotte($organization, memberOf($organization, Role::Admin));
+
+    CagnotteTemplate::create(['name' => 'Tombola', 'ticket_price' => 500, 'winners_count' => 2, 'prize_split' => [60, 40]]);
+
+    foreach (['/admin', '/admin/signalements', '/admin/modeles', '/admin/frais', '/admin/portefeuille', '/admin/membres'] as $page) {
+        $this->actingAs($moderator)->get($page)->assertOk();
+    }
+
+    // Les règles de frais sont regroupées par opération, avec leur intitulé en français.
+    $this->actingAs($moderator)->get('/admin/frais')
+        ->assertSee('Cotisation payée en ligne')
+        ->assertSee('3,25 %');
+});
