@@ -31,6 +31,9 @@ class OrganizationResource extends JsonResource
             'currency' => $this->currency,
             'timezone' => $this->timezone,
             'role' => $role?->value,
+            'visibility' => $this->visibility->value,
+            'join_policy' => $this->join_policy->value,
+            'share_url' => $this->resource->shareUrl(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

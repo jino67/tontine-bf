@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show IconData, Icons;
 
 import '../../core/json.dart';
+import '../sharing/sharing.dart';
 import '../organizations/organization.dart';
 
 enum TontineType {
@@ -139,6 +140,9 @@ class Tontine {
     this.amountDueTotal,
     this.amountPaidTotal,
     this.nextDueOn,
+    this.visibility = ShareVisibility.members,
+    this.joinPolicy = JoinPolicy.closed,
+    this.shareUrl,
     this.members = const [],
   });
 
@@ -158,6 +162,9 @@ class Tontine {
         amountDueTotal: asIntOrNull(json['amount_due_total']),
         amountPaidTotal: asIntOrNull(json['amount_paid_total']),
         nextDueOn: asDate(json['next_due_on']),
+        visibility: ShareVisibility.fromApi(json['visibility']),
+        joinPolicy: JoinPolicy.fromApi(json['join_policy']),
+        shareUrl: asStringOrNull(json['share_url']),
         members: asMapList(json['members']).map(TontineMember.fromJson).toList(),
       );
 
@@ -176,6 +183,9 @@ class Tontine {
   final int? amountDueTotal;
   final int? amountPaidTotal;
   final DateTime? nextDueOn;
+  final ShareVisibility visibility;
+  final JoinPolicy joinPolicy;
+  final String? shareUrl;
   final List<TontineMember> members;
 
   int get memberCount => membersCount ?? members.length;

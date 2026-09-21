@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\MyContributionController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PayDunyaWebhookController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ShareLinkController;
+use App\Http\Controllers\Api\SharingController;
 use App\Http\Controllers\Api\StartTontineController;
 use App\Http\Controllers\Api\TontineController;
 use App\Http\Controllers\Api\TontineMemberController;
@@ -33,6 +35,9 @@ Route::prefix('v1')->group(function () {
         Route::post('payments/paydunya/ipn', [PayDunyaWebhookController::class, 'payment'])->name('payments.paydunya.ipn');
         Route::post('payouts/paydunya/callback', [PayDunyaWebhookController::class, 'payout'])->name('payouts.paydunya.callback');
     });
+
+    // Fiche publique d'un lien partagé, lisible sans connexion.
+    Route::get('links/{code}', ShareLinkController::class)->middleware('throttle:60,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [OtpController::class, 'logout']);
@@ -51,12 +56,14 @@ Route::prefix('v1')->group(function () {
             Route::get('members', [MemberController::class, 'index']);
             Route::patch('members/{membership}', [MemberController::class, 'update']);
             Route::post('invitations', [InvitationController::class, 'store']);
+            Route::put('sharing', [SharingController::class, 'organization']);
 
             Route::get('tontines', [TontineController::class, 'index']);
             Route::post('tontines', [TontineController::class, 'store']);
             Route::get('tontines/{tontine}', [TontineController::class, 'show']);
             Route::post('tontines/{tontine}/members', [TontineMemberController::class, 'store']);
             Route::post('tontines/{tontine}/start', StartTontineController::class);
+            Route::put('tontines/{tontine}/sharing', [SharingController::class, 'tontine']);
 
             Route::get('tontines/{tontine}/cycles', [CycleController::class, 'index']);
             Route::get('tontines/{tontine}/cycles/{cycle}', [CycleController::class, 'show']);
@@ -74,6 +81,7 @@ Route::prefix('v1')->group(function () {
             Route::post('cagnottes', [CagnotteController::class, 'store']);
             Route::get('cagnottes/{cagnotte}', [CagnotteController::class, 'show']);
             Route::post('cagnottes/{cagnotte}/close', [CagnotteController::class, 'close']);
+            Route::put('cagnottes/{cagnotte}/sharing', [SharingController::class, 'cagnotte']);
             Route::post('cagnottes/{cagnotte}/contributions', [CagnotteContributionController::class, 'store']);
             Route::put('cagnottes/{cagnotte}/contributions/{contribution}', [CagnotteContributionController::class, 'update']);
             Route::post('cagnottes/{cagnotte}/contributions/{contribution}/confirm', [CagnotteContributionController::class, 'confirm']);

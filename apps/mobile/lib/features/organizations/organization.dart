@@ -1,4 +1,5 @@
 import '../../core/json.dart';
+import '../sharing/sharing.dart';
 
 enum Role {
   owner('owner', 'Propriétaire', 'Gère l’organisation et attribue les rôles.'),
@@ -19,19 +20,33 @@ enum Role {
 }
 
 class Organization {
-  const Organization({required this.id, required this.name, required this.role, this.plan});
+  const Organization({
+    required this.id,
+    required this.name,
+    required this.role,
+    this.plan,
+    this.visibility = ShareVisibility.members,
+    this.joinPolicy = JoinPolicy.closed,
+    this.shareUrl,
+  });
 
   factory Organization.fromJson(Map<String, dynamic> json) => Organization(
         id: asInt(json['id']),
         name: '${json['name'] ?? ''}',
         role: Role.fromApi(json['role']),
         plan: asStringOrNull(json['plan']),
+        visibility: ShareVisibility.fromApi(json['visibility']),
+        joinPolicy: JoinPolicy.fromApi(json['join_policy']),
+        shareUrl: asStringOrNull(json['share_url']),
       );
 
   final int id;
   final String name;
   final Role role;
   final String? plan;
+  final ShareVisibility visibility;
+  final JoinPolicy joinPolicy;
+  final String? shareUrl;
 }
 
 /// Personne telle que la voient les autres membres (numéro éventuellement masqué).
@@ -66,19 +81,23 @@ class Membership {
 }
 
 class Invitation {
-  const Invitation({required this.code, this.tontineId, this.maxUses, this.expiresAt});
+  const Invitation({required this.code, this.tontineId, this.maxUses, this.expiresAt, this.url});
 
   factory Invitation.fromJson(Map<String, dynamic> json) => Invitation(
         code: '${json['code'] ?? ''}',
         tontineId: asIntOrNull(json['tontine_id']),
         maxUses: asIntOrNull(json['max_uses']),
         expiresAt: asDate(json['expires_at']),
+        url: asStringOrNull(json['url']),
       );
 
   final String code;
   final int? tontineId;
   final int? maxUses;
   final DateTime? expiresAt;
+
+  /// Lien à partager, quand l'API en fournit un.
+  final String? url;
 }
 
 class JoinResult {

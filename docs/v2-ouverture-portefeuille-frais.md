@@ -269,6 +269,61 @@ Table `fee_rules` : type d'opération, portée (globale, par organisation, par p
 
 ---
 
+## 5 bis. Notifications et relances
+
+Une tontine se tient par les rappels. Aujourd'hui l'application ne prévient personne : tout repose sur le trésorier
+qui relance de vive voix. C'est le premier manque signalé à l'usage.
+
+### Ce qui déclenche une notification
+
+| Moment | Qui reçoit | Message |
+|---|---|---|
+| 3 jours avant l'échéance d'un tour | chaque membre qui doit cotiser | « Votre cotisation de 5 000 FCFA est attendue vendredi. » |
+| Le jour de l'échéance | les membres non encore enregistrés | « C'est aujourd'hui : 5 000 FCFA pour le tour 4. » |
+| 2 jours après, puis tous les 3 jours | les retardataires, et un récapitulatif au trésorier | « Vous avez 2 jours de retard. » |
+| Paiement enregistré par le trésorier | le membre concerné | « Le trésorier a enregistré 5 000 FCFA. Confirmez si c'est exact. » |
+| Paiement confirmé | le trésorier | « Awa a confirmé sa cotisation. » |
+| Tour réglé | le bénéficiaire du tour | « Votre tour est complet : 60 000 FCFA à recevoir. » |
+| Cagnotte : 24 h avant la clôture | les membres qui n'ont pas participé | « Il reste un jour pour participer. » |
+| Cagnotte : tirage révélé | tous les participants | « Les gagnants sont connus. » |
+| Gain ou fonds remis | le bénéficiaire | « Confirmez la réception de 59 400 FCFA. » |
+| Demande d'adhésion (L2) | les responsables | « Binta demande à rejoindre votre tontine. » |
+| Paiement en ligne validé | le payeur | « Paiement de 5 165 FCFA validé. » |
+
+### Ce qui les rend intelligentes
+
+- **Regroupement** : un membre de trois tontines reçoit un seul message le matin, pas trois. Une file quotidienne
+  regroupe par personne avant l'envoi.
+- **Silence utile** : rien n'est envoyé à qui a déjà payé, rien n'est renvoyé si le membre a ouvert l'application
+  depuis le dernier rappel, et jamais deux fois le même message dans la journée.
+- **Heures décentes** : envoi entre 7 h et 20 h heure de Ouagadougou. Ce qui tombe en dehors attend le matin.
+- **Montant juste** : le message porte le reste à payer, pas le montant du tour, quand une partie a déjà été versée.
+- **Ton adapté au retard** : rappel neutre avant l'échéance, ferme après, et jamais de message culpabilisant qui
+  circulerait en capture d'écran dans le groupe WhatsApp.
+- **Réglages par membre** : chacun choisit ce qu'il reçoit et par quel canal, avec un interrupteur « ne plus me
+  relancer pour cette tontine ». Un rappel qu'on ne peut pas couper devient un spam.
+- **Trace** : chaque envoi est enregistré (quoi, à qui, quand, par quel canal, résultat), pour prouver qu'un membre
+  a bien été prévenu avant une exclusion.
+
+### Canaux, par ordre de coût
+
+| Canal | Coût | Remarque |
+|---|---|---|
+| Notification dans l'application | gratuit | visible seulement à l'ouverture, insuffisante seule |
+| Push Android (Firebase) | gratuit | demande le service Firebase et une clé ; le plus rentable |
+| WhatsApp | payé par message | idéal pour les relances de paiement, modèle à faire approuver |
+| SMS | le plus cher | à réserver aux retards importants et aux membres sans smartphone |
+| E-mail | gratuit avec la boîte LWS | utile pour les récapitulatifs du trésorier |
+
+Proposition : push Firebase pour tout le monde, WhatsApp pour les relances de paiement et les remises, e-mail pour
+les récapitulatifs hebdomadaires du trésorier, SMS gardé en secours et facturé au plan payant.
+
+### Travaux
+
+Table `notifications` (destinataire, type, objet, canal, état, dates), table `notification_settings` par membre,
+file d'attente traitée par le cron existant, planificateur pour les échéances, et un écran « Notifications » dans
+l'application avec l'historique et les réglages.
+
 ## 6. Impacts sur l'existant
 
 ### API
@@ -329,12 +384,13 @@ L'ouverture au public élargit ce qui est visible. Règle simple : aucun numéro
 
 | Lot | Contenu | Dépendances | Estimation |
 |---|---|---|---|
-| **L1. Visibilité et liens** | colonnes de visibilité, `share_links`, page web de repli, App Links, QR, partage WhatsApp | aucune | 1 semaine |
+| **L1. Visibilité et liens** ✅ livré | `visibility` et `join_policy`, codes de partage, fiche publique sans donnée personnelle, page web de repli, App Links, QR, partage WhatsApp, lien accepté à la place du code | aucune | fait |
 | **L2. Adhésion** | `join_requests`, annuaire, recherche, gestion des membres d'une tontine, signalement | L1 | 1 semaine |
 | **L3. Moteur de frais** | `fee_rules`, `fee_charges`, calcul, affichage avant confirmation, reçus, page des frais | aucune | 1 semaine |
 | **L4. Portefeuille, socle** | comptes, écritures, historique, paiement d'une cotisation depuis le solde, transferts internes | L3 | 1 à 2 semaines |
 | **L5. Portefeuille, entrées et sorties** | dépôt (désactivable), retrait, plafonds, vérification du numéro, réconciliation | L4, décision 4.1 | 1 semaine |
 | **L6. Modération et confiance** | back-office des signalements, historique du créateur, limites des tontines publiques | L2 | 1 semaine |
+| **L7. Notifications et relances** | voir section 5 bis | L3 pour les montants, L2 pour les demandes | 1 à 2 semaines |
 
 L1 à L3 peuvent être livrés sans trancher la question réglementaire. L4 et L5 attendent la décision.
 
@@ -351,6 +407,7 @@ L1 à L3 peuvent être livrés sans trancher la question réglementaire. L4 et L
 7. **Pseudonyme public** : obligatoire pour tout compte apparaissant sur une fiche publique, ou nom réel affiché ?
 8. **Transfert entre membres** : gratuit comme proposé, ou facturé 0,5 % pour éviter l'usage de l'application comme service de transfert d'argent ?
 9. **Plafonds** : les niveaux du 4.4 conviennent-ils pour le Burkina Faso ?
-10. **Priorité de livraison** : l'ordre L1 à L6, ou le portefeuille d'abord parce qu'il porte le modèle économique ?
+10. **Priorité de livraison** : l'ordre L1 à L7, ou le portefeuille d'abord parce qu'il porte le modèle économique ?
+11. **Canaux de notification** : la répartition proposée en 5 bis convient-elle (push gratuit pour tous, WhatsApp pour les relances de paiement, e-mail pour le trésorier, SMS en secours) ? Le push demande d'ouvrir un compte Firebase.
 
 Une fois ces dix points tranchés, ce document devient le cahier des charges des lots, et chaque lot est développé avec ses tests, comme le reste du projet.

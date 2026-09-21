@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -9,6 +12,8 @@ import '../features/auth/onboarding_screen.dart';
 import '../features/auth/phone_screen.dart';
 import '../features/auth/profile_setup_screen.dart';
 import '../features/organizations/organization_picker_screen.dart';
+import '../features/sharing/link_screen.dart';
+import '../features/sharing/sharing.dart';
 import 'config.dart';
 import 'home_shell.dart';
 import 'theme.dart';
@@ -24,6 +29,8 @@ class TontineApp extends StatefulWidget {
 
 class _TontineAppState extends State<TontineApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _appLinks = AppLinks();
+  StreamSubscription<Uri>? _links;
   SessionStatus? _lastStatus;
   int? _lastOrganizationId;
 
@@ -31,12 +38,29 @@ class _TontineAppState extends State<TontineApp> {
   void initState() {
     super.initState();
     widget.session.addListener(_onSessionChanged);
+    _listenToLinks();
   }
 
   @override
   void dispose() {
+    _links?.cancel();
     widget.session.removeListener(_onSessionChanged);
     super.dispose();
+  }
+
+  /// Un lien partagé ouvre la fiche correspondante, que l'application soit déjà lancée ou non.
+  Future<void> _listenToLinks() async {
+    _links = _appLinks.uriLinkStream.listen(_openLink);
+
+    final initial = await _appLinks.getInitialLink();
+    if (initial != null) _openLink(initial);
+  }
+
+  void _openLink(Uri uri) {
+    final code = shareCodeFrom(uri.toString());
+    if (code == null) return;
+
+    _navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => LinkScreen(code: code)));
   }
 
   /// Après une déconnexion ou un changement d'organisation, les écrans ouverts par-dessus n'ont plus de sens.

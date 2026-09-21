@@ -6,6 +6,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui.dart';
+import '../sharing/sharing.dart';
 
 class JoinScreen extends StatefulWidget {
   const JoinScreen({super.key});
@@ -26,9 +27,10 @@ class _JoinScreenState extends State<JoinScreen> {
   }
 
   Future<void> _join() async {
-    final code = _code.text.trim();
+    // Le champ accepte aussi un lien reçu par WhatsApp : https://exemple.bf/i/ABCD2345
+    final code = shareCodeFrom(_code.text) ?? '';
     if (code.length != 8) {
-      setState(() => _error = 'Le code contient 8 lettres et chiffres.');
+      setState(() => _error = 'Saisissez les 8 caractères du code, ou collez le lien reçu.');
       return;
     }
 

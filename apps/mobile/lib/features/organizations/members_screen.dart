@@ -4,6 +4,7 @@ import '../../app/theme.dart';
 import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/ui.dart';
+import '../sharing/share_actions.dart';
 import 'invite_sheet.dart';
 import 'organization.dart';
 
@@ -66,6 +67,11 @@ class _MembersScreenState extends State<MembersScreen> {
       appBar: AppBar(
         title: const Text('Membres et rôles'),
         actions: [
+          IconButton(
+            tooltip: 'Partager l’organisation',
+            onPressed: () => shareOrganization(context, organization),
+            icon: const Icon(Icons.ios_share_rounded),
+          ),
           if (organization.role.canManage)
             IconButton(
               tooltip: 'Inviter dans l’organisation',

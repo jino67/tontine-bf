@@ -28,6 +28,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Ouverture de l'application Android sur les liens partagés. L'empreinte est celle de la clé
+    // de signature de l'APK : `keytool -list -v -keystore <fichier>` donne la ligne SHA256.
+    'app_links' => [
+        'android_package' => env('ANDROID_PACKAGE', 'com.example.app_tontine_bf'),
+        'android_fingerprints' => env('ANDROID_SHA256_FINGERPRINTS', ''),
+        'apk_url' => env('APK_DOWNLOAD_URL'),
+    ],
+
     // Codes de connexion. "log" les écrit dans storage/logs (refusé en production), "mail" les envoie
     // à l'adresse e-mail liée au numéro. Les numéros de OTP_TEST_PHONES, séparés par des virgules,
     // se connectent avec OTP_TEST_CODE (6 chiffres) sans rien recevoir, sauf en production.

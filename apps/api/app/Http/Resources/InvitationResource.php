@@ -12,6 +12,7 @@ class InvitationResource extends JsonResource
         return [
             'id' => $this->id,
             'code' => $this->code,
+            'url' => rtrim((string) config('app.url'), '/').'/i/'.$this->code,
             'organization_id' => $this->organization_id,
             'tontine_id' => $this->tontine_id,
             'max_uses' => $this->max_uses,

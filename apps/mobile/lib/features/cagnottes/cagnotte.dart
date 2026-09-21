@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show IconData, Icons;
 
 import '../../core/json.dart';
+import '../sharing/sharing.dart';
 import '../organizations/organization.dart';
 import '../tontines/models.dart' show ContributionStatus, PaymentMethod;
 
@@ -240,6 +241,8 @@ class Cagnotte {
     required this.acceptsContributions,
     required this.collectedAmount,
     this.description,
+    this.visibility = ShareVisibility.members,
+    this.shareUrl,
     this.targetAmount,
     this.beneficiary,
     this.contributionsCount,
@@ -272,6 +275,8 @@ class Cagnotte {
       mode: CagnotteMode.fromApi(json['mode']),
       title: '${json['title'] ?? ''}',
       description: asStringOrNull(json['description']),
+      visibility: ShareVisibility.fromApi(json['visibility']),
+      shareUrl: asStringOrNull(json['share_url']),
       duration: CagnotteDuration.fromApi(json['duration']),
       targetAmount: asIntOrNull(json['target_amount']),
       minAmount: asInt(json['min_amount']),
@@ -303,6 +308,8 @@ class Cagnotte {
   final int id;
   final int organizationId;
   final CagnotteMode mode;
+  final ShareVisibility visibility;
+  final String? shareUrl;
   final String title;
   final String? description;
   final CagnotteDuration duration;

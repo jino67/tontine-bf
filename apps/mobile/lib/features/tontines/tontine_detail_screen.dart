@@ -5,6 +5,7 @@ import '../../content/tontine_guide.dart';
 import '../../core/format.dart';
 import '../../core/session/session_scope.dart';
 import '../../core/widgets/ui.dart';
+import '../sharing/share_actions.dart';
 import '../../core/widgets/woven_band.dart';
 import '../organizations/invite_sheet.dart';
 import 'cycle_detail_screen.dart';
@@ -119,6 +120,17 @@ class _TontineDetailScreenState extends State<TontineDetailScreen> {
               padding: const EdgeInsets.only(bottom: 40),
               children: [
                 _Header(tontine: tontine),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 20, 0),
+                    child: TextButton.icon(
+                      onPressed: () => shareTontine(context, tontine, organization: organization, onChanged: _refresh),
+                      icon: const Icon(Icons.ios_share_rounded, size: 20),
+                      label: const Text('Partager'),
+                    ),
+                  ),
+                ),
                 if (tontine.isDraft)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),

@@ -10,6 +10,7 @@ import '../../core/widgets/ui.dart';
 import '../../core/widgets/verification.dart';
 import '../organizations/organization.dart';
 import '../payments/pay_online.dart';
+import '../sharing/share_actions.dart';
 import '../tontines/models.dart' show ContributionStatus, PaymentMethod;
 import 'cagnotte.dart';
 import 'cagnotte_repository.dart';
@@ -188,6 +189,17 @@ class _CagnotteDetailScreenState extends State<CagnotteDetailScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: _Hero(cagnotte: cagnotte, onFinished: _refresh),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 20, 0),
+                    child: TextButton.icon(
+                      onPressed: () => shareCagnotte(context, cagnotte, organizationId: session.currentOrganization!.id, canManage: role.canManage, onChanged: _refresh),
+                      icon: const Icon(Icons.ios_share_rounded, size: 20),
+                      label: const Text('Partager'),
+                    ),
+                  ),
                 ),
                 if (cagnotte.acceptsContributions)
                   Padding(

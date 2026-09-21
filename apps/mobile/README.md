@@ -24,6 +24,14 @@ Pour viser l'API hébergée chez LWS, installée à la racine d'un domaine (sans
 flutter build apk --release --dart-define=API_URL=https://<domaine>/api/v1
 ```
 
+Les liens partagés ouvrent l'application quand l'hôte du manifeste correspond au domaine de l'API. Il vaut `goaicorp-crm.online` par défaut et se change à la compilation :
+
+```bash
+flutter build apk --release -Pandroid.appLinkHost=<domaine> --dart-define=API_URL=https://<domaine>/api/v1
+```
+
+L'ouverture directe, sans passer par le navigateur, demande en plus une clé de signature de release et son empreinte SHA-256 publiée par l'API (`ANDROID_SHA256_FINGERPRINTS`). Sans elle, Android propose simplement le choix de l'application.
+
 ## Organisation du code
 
 | Dossier | Contenu |
@@ -36,6 +44,7 @@ flutter build apk --release --dart-define=API_URL=https://<domaine>/api/v1
 | `lib/features/home` | Accueil et échéancier personnel |
 | `lib/features/tontines` | Liste, création, détail, tours, paiements, tirage vérifiable avec tours attribués |
 | `lib/features/cagnottes` | Cagnottes solidaires et à gagnants : compte à rebours, participations, tickets, gains, tirage vérifiable, remises |
+| `lib/features/sharing` | Liens de partage, QR code, ouverture d'un lien reçu |
 | `lib/features/profile` | Profil, aide, guide, confidentialité, à propos |
 
 Aucune donnée n'est inventée : tout ce qui concerne les tontines, les membres et les cotisations vient de l'API.

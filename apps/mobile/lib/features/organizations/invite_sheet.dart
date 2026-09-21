@@ -44,8 +44,12 @@ class _InviteSheetState extends State<_InviteSheet> {
 
   String _message(Invitation invitation) {
     final target = widget.tontineName == null ? widget.organization.name : '${widget.organization.name}, tontine ${widget.tontineName}';
-    return 'Rejoignez $target sur Tontine BF. Ouvrez l’application, touchez « Rejoindre avec un code » '
-        'et saisissez : ${invitation.code}';
+    final link = invitation.url;
+
+    return link == null
+        ? 'Rejoignez $target sur Tontine BF. Ouvrez l’application, touchez « Rejoindre avec un code » '
+            'et saisissez : ${invitation.code}'
+        : 'Rejoignez $target sur Tontine BF : $link';
   }
 
   Future<void> _share(Invitation invitation) async {

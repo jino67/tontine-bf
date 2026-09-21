@@ -6,6 +6,8 @@ use App\Enums\CagnotteDuration;
 use App\Enums\CagnotteMode;
 use App\Enums\CagnotteStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\Visibility;
+use App\Models\Concerns\HasShareCode;
 use Database\Factories\CagnotteFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,22 +25,28 @@ class Cagnotte extends Model
     /** @use HasFactory<CagnotteFactory> */
     use HasFactory;
 
+    use HasShareCode;
+
+    /** Lettre du chemin public : https://exemple.bf/c/ABCD2345 */
+    public const SHARE_PATH = 'c';
+
     protected $fillable = [
         'organization_id', 'created_by', 'mode', 'title', 'description', 'duration', 'target_amount', 'min_amount',
         'beneficiary_user_id', 'beneficiary_name', 'opens_at', 'ends_at', 'status', 'closed_at',
         'handover_amount', 'handover_method', 'handover_reference', 'handed_over_at', 'handover_recorded_by',
         'handover_confirmed_at', 'ticket_price', 'winners_count', 'prize_split', 'fee_percent',
-        'draw_seed', 'draw_seed_hash', 'draw_tickets', 'draw_reveal_after', 'drawn_at',
+        'draw_seed', 'draw_seed_hash', 'draw_tickets', 'draw_reveal_after', 'drawn_at', 'visibility',
     ];
 
     protected $hidden = ['draw_seed'];
 
-    protected $attributes = ['mode' => 'solidaire', 'status' => 'ouverte', 'min_amount' => 100, 'fee_percent' => 0];
+    protected $attributes = ['mode' => 'solidaire', 'status' => 'ouverte', 'min_amount' => 100, 'fee_percent' => 0, 'visibility' => 'privee'];
 
     protected function casts(): array
     {
         return [
             'mode' => CagnotteMode::class,
+            'visibility' => Visibility::class,
             'duration' => CagnotteDuration::class,
             'status' => CagnotteStatus::class,
             'target_amount' => 'integer',

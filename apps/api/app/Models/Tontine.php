@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use App\Enums\Frequency;
+use App\Enums\JoinPolicy;
 use App\Enums\TontineStatus;
 use App\Enums\TontineType;
+use App\Enums\Visibility;
 use App\Exceptions\DomainRuleException;
+use App\Models\Concerns\HasShareCode;
 use Database\Factories\TontineFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,12 +23,17 @@ class Tontine extends Model
     /** @use HasFactory<TontineFactory> */
     use HasFactory;
 
+    use HasShareCode;
+
+    /** Lettre du chemin public : https://exemple.bf/t/ABCD2345 */
+    public const SHARE_PATH = 't';
+
     protected $fillable = [
         'organization_id', 'created_by', 'name', 'type', 'amount', 'frequency', 'starts_on',
-        'cycles_count', 'max_members', 'goal', 'status', 'started_at',
+        'cycles_count', 'max_members', 'goal', 'status', 'started_at', 'visibility', 'join_policy',
     ];
 
-    protected $attributes = ['status' => 'brouillon'];
+    protected $attributes = ['status' => 'brouillon', 'visibility' => 'privee', 'join_policy' => 'fermee'];
 
     protected function casts(): array
     {
@@ -33,6 +41,8 @@ class Tontine extends Model
             'type' => TontineType::class,
             'frequency' => Frequency::class,
             'status' => TontineStatus::class,
+            'visibility' => Visibility::class,
+            'join_policy' => JoinPolicy::class,
             'amount' => 'integer',
             'cycles_count' => 'integer',
             'max_members' => 'integer',

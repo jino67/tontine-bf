@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\JoinPolicy;
+use App\Enums\Visibility;
+use App\Models\Concerns\HasShareCode;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,17 +17,28 @@ class Organization extends Model
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'plan', 'currency', 'timezone', 'settings'];
+    use HasShareCode;
+
+    /** Lettre du chemin public : https://exemple.bf/o/ABCD2345 */
+    public const SHARE_PATH = 'o';
+
+    protected $fillable = ['name', 'slug', 'plan', 'currency', 'timezone', 'settings', 'visibility', 'join_policy'];
 
     protected $attributes = [
         'plan' => 'gratuit',
+        'visibility' => 'privee',
+        'join_policy' => 'fermee',
         'currency' => 'XOF',
         'timezone' => 'Africa/Ouagadougou',
     ];
 
     protected function casts(): array
     {
-        return ['settings' => 'array'];
+        return [
+            'settings' => 'array',
+            'visibility' => Visibility::class,
+            'join_policy' => JoinPolicy::class,
+        ];
     }
 
     public function memberships(): HasMany

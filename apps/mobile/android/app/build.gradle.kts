@@ -29,6 +29,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Hôte des liens partagés. Se change sans toucher au manifeste :
+        // flutter build apk --release -Pandroid.appLinkHost=exemple.bf
+        manifestPlaceholders["appLinkHost"] = (project.findProperty("android.appLinkHost") as String?) ?: "goaicorp-crm.online"
     }
 
     buildTypes {

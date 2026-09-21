@@ -93,6 +93,11 @@ MAIL_PASSWORD=<mot de passe de la boîte>
 MAIL_FROM_ADDRESS="<adresse de la boîte>"
 MAIL_FROM_NAME="Tontine BF"
 
+# Liens partagés : ouverture directe de l'application et lien de téléchargement sur la page de partage.
+ANDROID_PACKAGE=com.example.app_tontine_bf
+ANDROID_SHA256_FINGERPRINTS=
+APK_DOWNLOAD_URL=
+
 # Numéros de test séparés par des virgules, connectés avec ce code fixe à 6 chiffres. Ignorés en production.
 OTP_TEST_PHONES=
 OTP_TEST_CODE=
@@ -172,11 +177,23 @@ cd ~/tontine-bf/apps/api && composer install --no-dev --optimize-autoloader && p
 
 Toujours déployer une version taguée qui a passé la CI, jamais une branche en cours.
 
-## 9. Mise à jour de l'installation par archive
+## 9. Lancer une migration sans SSH
+
+Une mise à jour qui ajoute des colonnes doit être appliquée à la base. Sans accès SSH, le panneau LWS sert de
+lanceur : ajouter une tâche planifiée **une seule fois**, attendre son passage, puis la supprimer.
+
+```bash
+cd /home/<utilisateur>/htdocs/<domaine>/tontine-api && php artisan migrate --force >> storage/logs/migration.log 2>&1
+```
+
+Le fichier `tontine-api/storage/logs/migration.log` dit ce qui a été appliqué. Vider ensuite
+`tontine-api/bootstrap/cache` s'il contient des fichiers `.php`.
+
+## 10. Mise à jour de l'installation par archive
 
 Remplacer le contenu de `tontine-api`, **sauf** `tontine-api/.env` et `tontine-api/database/database.sqlite`, puis vider `tontine-api/bootstrap/cache` (supprimer les fichiers `.php` qui s'y trouvent) pour que la configuration soit relue.
 
-## 10. Compiler l'application mobile
+## 11. Compiler l'application mobile
 
 ```bash
 flutter build apk --release --dart-define=API_URL=https://<domaine>/api/v1

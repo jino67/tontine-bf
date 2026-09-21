@@ -31,6 +31,8 @@ class CagnotteResource extends JsonResource
             'seconds_left' => $status === CagnotteStatus::Open ? (int) max(0, ceil(now()->diffInSeconds($this->ends_at, false))) : 0,
             'status' => $status->value,
             'accepts_contributions' => $status === CagnotteStatus::Open,
+            'visibility' => $this->visibility->value,
+            'share_url' => $this->resource->shareUrl(),
             'collected_amount' => $this->resource->collectedAmount(),
             'contributions_count' => $this->whenCounted('contributions'),
             'closed_at' => $this->closed_at?->toIso8601String(),
