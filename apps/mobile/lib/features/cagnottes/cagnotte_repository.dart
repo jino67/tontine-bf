@@ -5,6 +5,49 @@ import '../../core/json.dart';
 import '../tontines/models.dart' show PaymentMethod;
 import 'cagnotte.dart';
 
+/// Formule préparée depuis le back-office, proposée à la création d'une cagnotte.
+class CagnotteTemplate {
+  const CagnotteTemplate({
+    required this.id,
+    required this.name,
+    required this.mode,
+    required this.duration,
+    required this.recurring,
+    this.description,
+    this.ticketPrice,
+    this.winnersCount,
+    this.minAmount,
+    this.targetAmount,
+    this.feePercent = 0,
+  });
+
+  factory CagnotteTemplate.fromJson(Map<String, dynamic> json) => CagnotteTemplate(
+        id: asInt(json['id']),
+        name: '${json['name']}',
+        mode: CagnotteMode.fromApi(json['mode']),
+        duration: CagnotteDuration.fromApi(json['duration']),
+        recurring: json['recurring'] == true,
+        description: asStringOrNull(json['description']),
+        ticketPrice: asIntOrNull(json['ticket_price']),
+        winnersCount: asIntOrNull(json['winners_count']),
+        minAmount: asIntOrNull(json['min_amount']),
+        targetAmount: asIntOrNull(json['target_amount']),
+        feePercent: asInt(json['fee_percent']),
+      );
+
+  final int id;
+  final String name;
+  final CagnotteMode mode;
+  final CagnotteDuration duration;
+  final bool recurring;
+  final String? description;
+  final int? ticketPrice;
+  final int? winnersCount;
+  final int? minAmount;
+  final int? targetAmount;
+  final int feePercent;
+}
+
 class CagnotteDraft {
   const CagnotteDraft({
     required this.mode,
@@ -19,6 +62,8 @@ class CagnotteDraft {
     this.ticketPrice,
     this.winnersCount,
     this.feePercent,
+    this.recurring = false,
+    this.templateId,
   });
 
   final CagnotteMode mode;
@@ -34,9 +79,17 @@ class CagnotteDraft {
   final int? winnersCount;
   final int? feePercent;
 
+  /// Une cagnotte récurrente ouvre son édition suivante dès que le tirage est révélé.
+  final bool recurring;
+
+  /// Modèle dont viennent les valeurs, gardé pour l'historique.
+  final int? templateId;
+
   Map<String, dynamic> toJson() => {
         'mode': mode.apiValue,
         'title': title,
+        'recurring': recurring,
+        'template_id': templateId,
         'description': description,
         'duration': duration.apiValue,
         if (duration == CagnotteDuration.custom) 'ends_at': endsAt?.toUtc().toIso8601String(),
@@ -81,6 +134,10 @@ class CagnotteRepository {
   Future<Cagnotte> get(int cagnotteId) async => Cagnotte.fromJson(asMap(unwrap(await _api.get('$_base/$cagnotteId'))));
 
   Future<Cagnotte> create(CagnotteDraft draft) async => _changed(await _api.post(_base, draft.toJson()));
+
+  /// Formules préparées depuis le back-office. La liste peut être vide : rien n'y oblige.
+  Future<List<CagnotteTemplate>> templates() async =>
+      asMapList(unwrap(await _api.get('/cagnotte-templates'))).map(CagnotteTemplate.fromJson).toList();
 
   Future<Cagnotte> close(int cagnotteId) async => _changed(await _api.post('$_base/$cagnotteId/close'));
 

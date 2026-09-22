@@ -39,11 +39,48 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
   bool _beneficiaryIsMember = true;
   MemberUser? _beneficiary;
   int _winnersCount = 3;
+  bool _recurring = false;
+  int? _templateId;
+  List<CagnotteTemplate> _templates = const [];
   List<MemberUser>? _members;
   bool _saving = false;
   Map<String, String> _serverErrors = const {};
 
   bool get _prize => _mode == CagnotteMode.prize;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTemplates();
+  }
+
+  Future<void> _loadTemplates() async {
+    try {
+      final templates = await widget.repository.templates();
+      if (mounted) setState(() => _templates = templates);
+    } catch (_) {
+      // Sans modèle, la création se fait champ par champ, comme avant.
+    }
+  }
+
+  /// Un modèle remplit les champs d'un coup. Tout reste modifiable ensuite.
+  void _applyTemplate(CagnotteTemplate template) {
+    setState(() {
+      _templateId = template.id;
+      _mode = template.mode;
+      _duration = template.duration;
+      _recurring = template.recurring;
+      if (_title.text.trim().isEmpty) _title.text = template.name;
+      if (template.description != null && _description.text.trim().isEmpty) {
+        _description.text = template.description!;
+      }
+      if (template.ticketPrice != null) _ticketPrice.text = '${template.ticketPrice}';
+      if (template.winnersCount != null) _winnersCount = template.winnersCount!;
+      if (template.minAmount != null) _minAmount.text = '${template.minAmount}';
+      if (template.targetAmount != null) _target.text = '${template.targetAmount}';
+      _fee.text = '${template.feePercent}';
+    });
+  }
 
   @override
   void dispose() {
@@ -140,6 +177,8 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
           ticketPrice: int.tryParse(_ticketPrice.text),
           winnersCount: _winnersCount,
           feePercent: int.tryParse(_fee.text),
+          recurring: _recurring,
+          templateId: _templateId,
         ),
       );
       navigator.pushReplacement(
@@ -177,6 +216,28 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
           children: [
+            if (_templates.isNotEmpty) ...[
+              Text('Partir d’une formule', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'Elle remplit les champs d’un coup. Vous pouvez tout changer ensuite.',
+                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final template in _templates)
+                    ChoiceChip(
+                      label: Text(template.name),
+                      selected: _templateId == template.id,
+                      onSelected: (_) => _applyTemplate(template),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
             Text('Type de cagnotte', style: theme.textTheme.titleMedium),
             const SizedBox(height: 10),
             for (final mode in CagnotteMode.values)
@@ -323,6 +384,17 @@ class _CreateCagnotteScreenState extends State<CreateCagnotteScreen> {
   List<Widget> _prizeFields(ThemeData theme) => [
         Text('Tickets et gains', style: theme.textTheme.titleMedium),
         const SizedBox(height: 12),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _recurring,
+          onChanged: (value) => setState(() => _recurring = value),
+          title: const Text('Cagnotte récurrente'),
+          subtitle: const Text(
+            'Une nouvelle édition s’ouvre dès que le tirage est révélé. '
+            'L’édition jouée reste intacte, avec son tirage et ses gagnants.',
+          ),
+        ),
+        const SizedBox(height: 4),
         TextFormField(
           controller: _ticketPrice,
           keyboardType: TextInputType.number,
